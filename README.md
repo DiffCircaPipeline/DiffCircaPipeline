@@ -5,5 +5,5 @@
 ```{R}
 if (!require("devtools", quietly = TRUE))
     install.packages("devtools")
-devtools::install_github("XiangningXue/CircadianPipeline") 
+devtools::install_github("DiffCircaPipeline/Rpackage") 
 ```
