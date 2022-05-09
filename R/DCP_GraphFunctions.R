@@ -151,7 +151,7 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, period,
   return(p1)
 }
 
-#' Heatmaps for Rhythmicity Signals
+#' Heatmaps of Rhythmicity Signals
 #'
 #' @param x DCP_Rhythmicity() output
 #' @param genes.plot a vector of character strings. Names of genes to be plotted. Names should be same in nomenclature as gname in the data list. If NULL, the top 100 most rhythmic genes from group I will be used
@@ -271,7 +271,7 @@ DCP_PlotHeatmap = function(x, genes.plot = NULL,
 
 
 
-#' Histogram for peak time
+#' Histogram of peak time
 #' Make a circos histogram plot for peak time.
 #'
 #' @param x DCP_Rhythmicity() output
@@ -435,8 +435,239 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
   return(pp)
 }
 
+#' Radar plot of peak time
+#' Make a circos histogram plot for peak time.
+#'
+#' @param x DCP_Rhythmicity() output
+#' @param TOJR toTOJR output. If NULL, rhythm.joint object in x will be used.
+#' @param RhyBothOnly For two-group output, plot only RhyBoth genes or all rhythmic genes in separate groups?
+#' @param sig.cut A list. Used only for single-group plot, only genes satisfying sig.cut will be plotted. If NULL then genes all genes in regardless of significance in rhythmicity will be plotted. \itemize{
+#' \item param parameter used for the cutoff. Should be a column in x.
+#' \item fun character string. Either "<", or ">"
+#' \item val numeric. The value used for the cutoff}
+#' @param time.start numeric. What time do you want the phase start? Default is -6, which is midnight if time is in ZT scale.
+#' @param Info1 character string. Used in the plot title for group I
+#' @param Info2 character string. Used in the plot title for group II (if exist).
+#' @param filename character string. The filename for plot export. If NULL, the plot will not be saved.
+#' @param file.width width of the export plot
+#' @param file.height height of the export plot
+#' @param color Input color. The length of the vector should be the same of the number of the groups.
+#' @param single.binwidth numeric. The binwidth for plotting peak histogram.
+#' @param axis.text.size Size for the axis text.
+#' @param legend.position One of "left”, "top", "right", "bottom", or "none"
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' x = DCP_sim_data(ngene=1000, nsample=30, A1=c(2, 3), A2=c(2, 3),
+#' phase1=c(0, pi/4), phase2=c(pi/2, pi*3/2),
+#' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
+#' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
+#' # Make a two-group plot:
+#' DCP_PlotPeakRadar(rhythm.res)
+#' # Make a one-group plot
+#' DCP_PlotPeakRadar(rhythm.res$x1)
+DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(param = "pvalue", fun = "<", val = 0.05),
+                             time.start = -6,
+                             Info1 = "groupI", Info2 = "groupII",
+                             filename = NULL, file.width = 8, file.height = 8,
+                             color = NULL,
+                             single.binwidth = 2,
+                             axis.text.size = 12,
+                             legend.position="right"){
 
-#' Circos plot for peak time shift
+  to.df.radar = function(peak.vec = peak.df$peak, group = "gI", bin.width = 1, phase.start, period){
+    a.break = seq(phase.start, phase.start+period, by = bin.width)
+    # ranges = cut(peak.vec, breaks = a.break)
+    # a.df = as.data.frame(table(ranges))
+
+    ranges = lapply(peak.vec, function(a){cut(a, breaks = a.break)})
+    a.df = lapply(ranges, function(a){as.data.frame(table(a))})
+    df.grid = a.df[[1]][, 1]
+    a.df = cbind.data.frame(lapply(a.df, `[[`, 2))
+    # a.df.grid1 = a.break[-length(a.break)]
+    # a.df.grid2 = a.break[-1]
+    # a.df.grid = (a.df.grid1+a.df.grid2)/2
+    # a.df$ranges = a.df.grid
+    a.max = max(a.df)
+    a.df2 = as.data.frame(t(a.df)); colnames(a.df2) = df.grid; rownames(a.df2) = NULL
+    df.radar = a.df2/a.max
+    df.radar = cbind.data.frame(data.frame(group = group),
+                                df.radar)
+    return(list(df = df.radar,
+                max = a.max))
+  }
+
+  studyType = To.studyType(x)
+
+  if(studyType == "One"){
+
+    period = x$P
+    a.min = time.start
+    a.max = time.start+period
+    if(is.null(color)){
+      color = "#3374b0"
+    }
+
+    if(is.null(sig.cut)){
+
+      warning("sig.cut input is NULL. All genes will be plotted. ")
+      peak.df = x$rhythm
+
+    }else{
+
+      peak.df = x$rhythm
+      CheckSigCut(peak.df, sig.cut, "x$rhythm")
+      xx = x$rhythm[, sig.cut$param]
+      peak.df = x$rhythm[.Primitive(sig.cut$fun)(xx, sig.cut$val), ]
+
+    }
+
+    peak.df$peak = adjust.circle(peak.df$peak, time.start, period)
+    pp.file = paste0(filename, "_", Info1, "_PeakRadar")
+
+    df.radar = to.df.radar(peak.vec = list(peak.df$peak), group = "gI", bin.width = single.binwidth, a.min, period)
+
+    pp =     suppressMessages(
+      ggradar::ggradar(df.radar$df,
+                       values.radar = c(0, round(max(df.radar$max)/2), max(df.radar$max)),
+                       # font.radar = "roboto",
+                       grid.label.size = axis.text.size*0.8,  # Affects the grid annotations (0%, 50%, etc.)
+                       axis.label.size = axis.text.size*0.5, # Afftects the names of the variables
+                       group.point.size = axis.text.size*0.1   # Simply the size of the point
+      )+
+        ggplot2::scale_color_manual(#name = "color",
+          # breaks = ,
+          values = color,
+          # labels = sig.color.breaks
+        )+
+        ggplot2::theme(
+          legend.position = "none"
+          # legend.justification = c(1, 0),
+          # legend.text = ggplot2::element_text(size = 14),
+          # legend.key = ggplot2::element_rect(fill = NA, color = NA),
+          # legend.background = ggplot2::element_blank()
+        ) +
+        ggplot2::labs(title = paste0("Radar plot of peak time")) +
+        ggplot2::theme(
+          # plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # # plot.background = element_rect(fill = "grey", color = "#fbf9f4"),
+          # panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # plot.title.position = "plot", # slightly different from default
+          plot.title = ggplot2::element_text(
+            # family = "lobstertwo",
+            size = axis.text.size*2.5,
+            face = "bold",
+            color = "#2a475e",
+            hjust=0.5
+          )
+        )
+    )
+
+
+  }else{
+
+    stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
+    period = x$x1$P
+    a.min = time.start
+    a.max = time.start+period
+
+    if(is.null(color)){
+      color = c("#F8766D", "#00BFC4")
+    }
+
+    if(is.null(TOJR)){
+      stopifnot("There is no TOJR input, and x$rhythm.joint$TOJR is also NULL." = !is.null(x$rhythm.joint$TOJR))
+      warning("There is no TOJR input, x$rhythm.joint$TOJR will be used for joint rhythmicity category. ")
+      TOJR = x$rhythm.joint$TOJR
+      rhyI = x$rhythm.joint$gname[TOJR == "rhyI"];
+      rhyII = x$rhythm.joint$gname[TOJR == "rhyII"];
+      rhyboth = x$rhythm.joint$gname[TOJR == "both"];
+      rhyI.both = c(rhyI, rhyboth);
+      rhyII.both = c(rhyII, rhyboth);
+    }else{
+      warning("TOJR input will be used joint rhythmicity category. ")
+      rhyI = x$gname_overlap[TOJR == "rhyI"]
+      rhyII = x$gname_overlap[TOJR == "rhyII"]
+      rhyboth = x$gname_overlap[TOJR == "both"]
+      rhyI.both = c(rhyI, rhyboth)
+      rhyII.both = c(rhyII, rhyboth)
+    }
+
+    if(RhyBothOnly){
+      peak.df.long = data.frame(peak = c(peak.select(x, rhyboth, "x1"), peak.select(x, rhyboth, "x2")),
+                                group = factor(rep(c(Info1, Info2), each = length(rhyboth))),
+                                group2 = factor(rep(c(1, 2), each = length(rhyboth))))
+    }else{
+      peak.df.long = data.frame(peak = c(peak.select(x, rhyI.both, "x1"), peak.select(x, rhyII.both, "x2")),
+                                group = factor(c(rep(Info1, length(rhyI.both)),
+                                                 rep(Info2, length(rhyII.both))
+                                )),
+                                group2 = factor(c(rep(1, length(rhyI.both)),
+                                                 rep(2, length(rhyII.both))
+                                )))
+    }
+
+    peak.df.long$peak = adjust.circle(peak.df.long$peak, time.start, period)
+
+
+    pp.file = paste0(filename, "_", Info1, "_", Info2, "_PeakHist")
+    df.radar = to.df.radar(peak.vec = list(peak.df.long[peak.df.long$group2==1, "peak"],
+                                           peak.df.long[peak.df.long$group2==2, "peak"]),
+                           group = c(Info1, Info2), bin.width = single.binwidth, a.min, period)
+
+    pp =     suppressMessages(
+      ggradar::ggradar(df.radar$df,
+                       values.radar = c(0, round(max(df.radar$max)/2), max(df.radar$max)),
+                       # font.radar = "roboto",
+                       grid.label.size = axis.text.size*0.8,  # Affects the grid annotations (0%, 50%, etc.)
+                       axis.label.size = axis.text.size*0.5, # Afftects the names of the variables
+                       group.point.size = axis.text.size*0.1   # Simply the size of the point
+      )+
+        ggplot2::scale_color_manual(#name = "color",
+          # breaks = ,
+          values = color,
+          # labels = sig.color.breaks
+        )+
+        ggplot2::theme(
+          legend.position = legend.position,
+          legend.justification = c(1, 0),
+          legend.text = ggplot2::element_text(size = axis.text.size),
+          legend.key = ggplot2::element_rect(fill = NA, color = NA),
+          legend.background = ggplot2::element_blank()
+        ) +
+        ggplot2::labs(title = paste0("Radar plot of peak time")) +
+        ggplot2::theme(
+          # plot.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # # plot.background = element_rect(fill = "grey", color = "#fbf9f4"),
+          # panel.background = element_rect(fill = "#fbf9f4", color = "#fbf9f4"),
+          # plot.title.position = "plot", # slightly different from default
+          plot.title = ggplot2::element_text(
+            # family = "lobstertwo",
+            size = axis.text.size*2.5,
+            face = "bold",
+            color = "#2a475e",
+            hjust=0.5
+          )
+        )
+    )
+  }
+  if(!is.null(filename)){
+    grDevices::pdf(paste0(pp.file, ".pdf"), width = file.width, height = file.height)
+    print(pp)
+    grDevices::dev.off()
+  }else{
+    print(pp)
+  }
+  return(pp)
+
+}
+
+
+#' Circos plot of peak time shift
 #' Make a circos plot for peak time shift between two groups
 #'
 #' @param x DCP_Rhythmicity() output.
@@ -639,7 +870,7 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
   return(pp)
 }
 
-#' Circos plot for linked peak time
+#' Circos plot of linked peak time
 #' Make a circos plot for linked peak time between two groups
 #'
 #' @param x DCP_Rhythmicity() output.

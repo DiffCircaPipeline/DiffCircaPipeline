@@ -2,7 +2,7 @@
 % Please edit documentation in R/DCP_GraphFunctions.R
 \name{DCP_PlotPeakLink}
 \alias{DCP_PlotPeakLink}
-\title{Circos plot for linked peak time
+\title{Circos plot of linked peak time
 Make a circos plot for linked peak time between two groups}
 \usage{
 DCP_PlotPeakLink(
@@ -67,7 +67,7 @@ DCP_PlotPeakLink(
 
 }
 \description{
-Circos plot for linked peak time
+Circos plot of linked peak time
 Make a circos plot for linked peak time between two groups
 }
 \examples{

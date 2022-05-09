@@ -80,7 +80,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
         message(paste0("Directory created. Permutation results will be saved in ", Sampling.save))
       }
     }
-    res.tab = diff_rhythmicity_permutation(x1.overlap,x2.overlap,t1,t2,overlap.g, P, x1.rhythm, x2.rhythm, nSampling,
+    res.tab = diff_rhythmicity_permutation(x1.overlap,x2.overlap,t1,t2,overlap.g, period, x1.rhythm, x2.rhythm, nSampling,
                                            Sampling.save, Sampling.file.label, parallel.ncores, alpha)
     diffR2.tab = res.tab[, c("gname", "delta.R2", "p.R2")]
   }else if(method == "bootstrap"){
@@ -90,7 +90,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
         message(paste0("Directory created. Bootstrap results will be saved in ", Sampling.save))
       }
     }
-    res.tab = diff_rhythmicity_bootstrap(x1.overlap,x2.overlap,t1,t2,overlap.g, P, x1.rhythm, x2.rhythm, nSampling,
+    res.tab = diff_rhythmicity_bootstrap(x1.overlap,x2.overlap,t1,t2,overlap.g, period, x1.rhythm, x2.rhythm, nSampling,
                                          Sampling.save, Sampling.file.label, parallel.ncores,alpha)
     diffR2.tab = res.tab[, c("gname", "delta.R2", "p.R2")]
   }
@@ -120,7 +120,7 @@ diff_rhythmicity_permutation = function(x1.overlap,x2.overlap,t1,t2,gname, perio
     x2.b = list(data = x12.overlap[, index2],
                 time = t.all[index2],
                 gname = gname)
-    perm.b = DCP_Rhythmicity(x1.b, x2.b, method = "Sidak_FS", period, alpha, CI = FALSE, p.adjust.method)
+    perm.b = DCP_Rhythmicity(x1.b, x2.b, method = "Sidak_FS", period, alpha, CI = FALSE)
     x1.rhythm.b = perm.b$x1$rhythm
     x2.rhythm.b = perm.b$x2$rhythm
     diffparas_null = list(M_null = x2.rhythm.b$M-x1.rhythm.b$M,
@@ -211,7 +211,7 @@ diff_rhythmicity_bootstrap = function(x1.overlap,x2.overlap,t1,t2,gname, period,
     x2.b = list(data = x2.overlap[, index2],
                 time = t2[index2],
                 gname = gname)
-    boot.b = DCP_Rhythmicity(x1.b, x2.b, method = "Sidak_FS", period, alpha, CI = FALSE, p.adjust.method)
+    boot.b = DCP_Rhythmicity(x1.b, x2.b, method = "Sidak_FS", period, alpha, CI = FALSE)
     x1.rhythm.b = boot.b$x1$rhythm
     x2.rhythm.b = boot.b$x2$rhythm
     diffparas_null = list(M_null = x2.rhythm.b$M-x1.rhythm.b$M,

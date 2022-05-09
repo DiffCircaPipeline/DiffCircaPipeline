@@ -2,7 +2,7 @@
 % Please edit documentation in R/DCP_GraphFunctions.R
 \name{DCP_PlotPeakDiff}
 \alias{DCP_PlotPeakDiff}
-\title{Circos plot for peak time shift
+\title{Circos plot of peak time shift
 Make a circos plot for peak time shift between two groups}
 \usage{
 DCP_PlotPeakDiff(
@@ -76,7 +76,7 @@ DCP_PlotPeakDiff(
 
 }
 \description{
-Circos plot for peak time shift
+Circos plot of peak time shift
 Make a circos plot for peak time shift between two groups
 }
 \examples{

@@ -23,6 +23,7 @@ Imports:
     stats,
     utils,
     ggplot2,
+    ggradar,
     gridExtra,
     rootSolve,
     grDevices,

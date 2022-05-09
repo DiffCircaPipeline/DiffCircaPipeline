@@ -2,7 +2,7 @@
 % Please edit documentation in R/DCP_GraphFunctions.R
 \name{DCP_PlotHeatmap}
 \alias{DCP_PlotHeatmap}
-\title{Heatmaps for Rhythmicity Signals}
+\title{Heatmaps of Rhythmicity Signals}
 \usage{
 DCP_PlotHeatmap(
   x,
@@ -40,7 +40,7 @@ DCP_PlotHeatmap(
 \item{file.height}{width of the export plot}
 }
 \description{
-Heatmaps for Rhythmicity Signals
+Heatmaps of Rhythmicity Signals
 }
 \examples{
 x = DCP_sim_data(ngene=1000, nsample=30, A1=c(1, 3), A2=c(1, 3),
