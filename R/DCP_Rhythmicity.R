@@ -205,7 +205,7 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
   }else{
     TOJR_adj = unlist(parallel::mclapply(1:nrow(action), function(i){
       # SeqModelSel(action[i, ], pv[i, ], alpha, method)
-      SeqModelSel(action[i, ], pv[i, ], 0.01, "Sidak_FS")
+      SeqModelSel(action[i, ], pv[i, ], alpha, "Sidak_FS")
     }, mc.cores = parallel.ncores))
   }
 
