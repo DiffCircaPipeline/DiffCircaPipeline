@@ -206,7 +206,7 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
   }else{
     TOJR_adj = unlist(parallel::mclapply(1:nrow(action), function(i){
       # SeqModelSel(action[i, ], pv[i, ], alpha, method)
-      SeqModelSel(action[i, ], pv[i, ], alpha, "Sidak_FS")
+      SeqModelSel(action[i, ], pv[i, ], alpha, method)
     }, mc.cores = parallel.ncores))
   }
 
@@ -720,6 +720,22 @@ get.angle_point.newOrigin.major = function(x0 = ellipse.parameters$x0,
 SeqModelSel = function(action = c(1, 2), pv = c(0.01, 0.02), alpha = 0.05, method = "Fisher_FS"){
   action = as.numeric(action)
   pv = as.numeric(pv)
+  stop.vda = function(nsel, action){
+    if(nsel == 2){
+      a.stop = "both"
+    }else if(nsel == 0){
+      a.stop = "arrhy"
+    }else if(nsel == 1){
+      sel = action[1]
+      if(sel == 1){
+        a.stop = "rhyI"
+      }else{
+        a.stop = "rhyII"
+      }
+    }
+    return(a.stop)
+  }
+
   if(method == "Fisher_BS"){
     p_combined = fishers.p(pv)
     stop = StopRule(action, pv, alpha, "BS")
@@ -765,26 +781,22 @@ SeqModelSel = function(action = c(1, 2), pv = c(0.01, 0.02), alpha = 0.05, metho
   }else if(method == "VDA"){
     is.rhy = pv<alpha
     if(sum(is.rhy)==2){
-      stop = "both"
+      stop = stop.vda(2, action)
     }else if(sum(is.rhy)==0){
-      stop = "arrhy"
-    }else if(is.rhy[1]){
-      stop = "rhyI"
+      stop = stop.vda(0, action)
     }else{
-      stop = "rhyII"
+      stop = stop.vda(1, action)
     }
   }else if(method == "AWFisher"){
     p_combined = AWFisher::AWFisher_pvalue(as.numeric(pv))
     aw.wight = p_combined$weights
     p_combined = p_combined$pvalues
     if(p_combined>alpha){
-      stop = "arrhy"
+      stop = stop.vda(0, action)
     }else if(sum(aw.wight)==2){
-      stop = "both"
+      stop = stop.vda(2, action)
     }else if(aw.wight[1, 1]==1){
-      stop = "rhyI"
-    }else{
-      stop = "rhyII"
+      stop = stop.vda(1, action)
     }
   }
   return(stop)
