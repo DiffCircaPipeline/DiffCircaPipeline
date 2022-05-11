@@ -75,8 +75,8 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
                            outphase = sin(2 * pi * time / period))
   design = stats::model.matrix(~inphase+outphase, data = design.vars)
   fit = limma::lmFit(data, design)
-  # fit = limma::eBayes(fit, trend = TRUE, robust = TRUE)
-  fit = limma::eBayes(fit) #the default setting has better power.
+  fit = limma::eBayes(fit, trend = TRUE, robust = TRUE)
+  # fit = limma::eBayes(fit) #the default setting has better power.
   top = limma::topTable(fit, coef = 2:3, n = nrow(data), sort.by = "none")
   m.top = limma::topTable(fit, coef = 1, n = nrow(data), sort.by = "none")
   all.top = limma::topTable(fit, coef = 1:3, n = nrow(data), sort.by = "none")
