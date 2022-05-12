@@ -10,6 +10,8 @@ if (!require("devtools", quietly = TRUE))
 #install dependencies
 devtools::install_github("diffCircadian/diffCircadian") 
 devtools::install_github("ricardo-bion/ggradar") 
+devtools::install_github("Caleb-Huo/differentialR2") 
+devtools::install_github("Caleb-Huo/AWFisher")
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("ComplexHeatmap")
