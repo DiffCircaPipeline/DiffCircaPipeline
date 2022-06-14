@@ -51,7 +51,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
 
   if(method == "LR"){
     res.list = parallel::mclapply(1:length(x.list), function(a){
-      one.res = differentialR2::LR_deltaR2(x.list[[a]]$x1.time, x.list[[a]]$y1,
+      one.res = LR_deltaR2(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                            x.list[[a]]$x2.time, x.list[[a]]$y2,
                                            FN = TRUE)
       one.res.tab = data.frame(gname = overlap.g[a], R2.1 = x1.rhythm$R2[a], R2.2 = x2.rhythm$R2[a],
@@ -100,6 +100,301 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
 }
 
 # Differential rhythmicity functions --------------------------------------
+##' Likelihood method to obtain p-value for differential R2.
+##'
+##' Likelihood method to obtain p-value for differential R2.
+##' @title Likelihood method to obtain p-value for differential R2.
+##' @param tt1 Time vector of condition 1
+##' @param yy1 Expression vector of condition 1
+##' @param tt2 Time vector of condition 2
+##' @param yy2 Expression vector of condition 2
+##' @param period Period of the since curve. Default is 24.
+##' @param FN Correct for finite sample.
+##' @return P-value for delta R2.
+##' Formula 1: \eqn{yy = amp \times sin(2\pi/period \times (phase + tt)) + offset}
+##' Formula 2: \eqn{yy = A \times sin(2\pi/period \times tt) + B * cos(2*pi/period * tt) + offset}
+##' @author Caleb (copied from Caleb's github and fixed a bug)
+##' @export
+##' @examples
+##' set.seed(32608)
+##' n <- 50
+##' tt1 <- runif(n,0,24)
+##' Amp1 <- 2
+##' Phase1 <- 6
+##' Offset1 <- 3
+##' yy1 <- Amp1 * sin(2*pi/24 * (tt1 + Phase1)) + Offset1 + rnorm(n,0,1)
+##' tt2 <- runif(n,0,24)
+##' Amp2 <- 3
+##' Phase2 <- 5
+##' Offset2 <- 2
+##' yy2 <- Amp2 * sin(2*pi/24 * (tt2 + Phase2)) + Offset2 + rnorm(n,0,1)
+##' LR_deltaR2(tt1, yy1, tt2, yy2)
+LR_deltaR2 <- function(tt1, yy1, tt2, yy2, period = 24, FN=TRUE){
+
+  n1 <- length(tt1)
+  stopifnot(n1 == length(yy1))
+  n2 <- length(tt2)
+  stopifnot(length(tt2) == length(yy2))
+
+  #period <- 24
+  w <- 2*pi/period
+
+  # fit1 <- fitSinCurve(tt1, yy1, period = 24)
+  # fit2 <- fitSinCurve(tt2, yy2, period = 24)
+  fit1 <- fitSinCurve(tt1, yy1, period)
+  fit2 <- fitSinCurve(tt2, yy2, period)
+
+  A1 <- fit1$amp
+  A2 <- fit2$amp
+
+  phase1 <- fit1$phase
+  phase2 <- fit2$phase
+
+  E1 <- A1 * cos(w * phase1)
+  F1 <- A1 * sin(w * phase1)
+
+  E2 <- A2 * cos(w * phase2)
+  F2 <- A2 * sin(w * phase2)
+
+  basal1 <- fit1$offset
+  basal2 <- fit2$offset
+
+  sigma2_1 <- 1/n1 * fit1$rss
+  sigma2_2 <- 1/n2 * fit2$rss
+
+  theta1 <- 1/sigma2_1
+  theta2 <- 1/sigma2_2
+
+  p1 <- c(E1, F1, basal1, theta1)
+  p2 <- c(E2, F2, basal2, theta2)
+
+  x_Ha <- c(p1, p2)
+
+  asin1 <- sin(w * tt1)
+  acos1 <- cos(w * tt1)
+  asin2 <- sin(w * tt2)
+  acos2 <- cos(w * tt2)
+
+  eval_f_list <- function(x,asin1,acos1,asin2,acos2) {
+    p1 <- x[1:4]
+    p2 <- x[5:8]
+
+    E1 <- p1[1]
+    F1 <- p1[2]
+    basel1 <- p1[3]
+    theta1 <- p1[4]
+    yhat1 <- E1 * asin1 + F1 * acos1 + basel1
+
+    E2 <- p2[1]
+    F2 <- p2[2]
+    basel2 <- p2[3]
+    theta2 <- p2[4]
+    yhat2 <- E2 * asin2 + F2 * acos2 + basel2
+
+    ll1_a <- log(theta1)/2
+    ll1_b <- (yy1 - yhat1)^2 * theta1 / 2
+    ll1 <- ll1_a - ll1_b
+
+    ll2_a <- log(theta2)/2
+    ll2_b <- (yy2 - yhat2)^2 * theta2 / 2
+    ll2 <- ll2_a - ll2_b
+
+    partial_E1 <- - theta1 * sum((yy1 - yhat1) * asin1)
+    partial_F1 <- - theta1 * sum((yy1 - yhat1) * acos1)
+    partial_C1 <- - theta1 * sum(yy1 - yhat1)
+    partial_theta1 <-  sum((yy1 - yhat1)^2)/2 - n1/2/theta1
+
+    partial_E2 <- - theta2 * sum((yy2 - yhat2) * asin2)
+    partial_F2 <- - theta2 * sum((yy2 - yhat2) * acos2)
+    partial_C2 <- - theta2 * sum(yy2 - yhat2)
+    partial_theta2 <-  sum((yy2 - yhat2)^2)/2 - n2/2/theta2
+
+
+    return( list( "objective" = -sum(ll1) - sum(ll2),
+                  "gradient"  = c(partial_E1, partial_F1, partial_C1, partial_theta1,
+                                  partial_E2, partial_F2, partial_C2, partial_theta2)
+    )
+    )
+  }
+
+  # Equality constraints
+  eval_g_eq <- function(x,asin1,acos1,asin2,acos2)
+  {
+    p1 <- x[1:4]
+    p2 <- x[5:8]
+
+    E1 <- p1[1]
+    F1 <- p1[2]
+    #basel1 <- p1[3]
+    theta1 <- p1[4]
+    #yhat1 <- E1 * asin1 + F1 * acos1 + basel1
+
+    E2 <- p2[1]
+    F2 <- p2[2]
+    #basel2 <- p2[3]
+    theta2 <- p2[4]
+    #yhat2 <- E2 * asin2 + F2 * acos2 + basel2
+
+    A2_1 <- (E1^2 + F1^2)
+    A2_2 <- (E2^2 + F2^2)
+    A2_1 * theta1 - A2_2 * theta2
+  }
+
+  # Equality constraints
+  eval_g_eq_jac <- function(x,asin1,acos1,asin2,acos2)
+  {
+    p1 <- x[1:4]
+    p2 <- x[5:8]
+
+    E1 <- p1[1]
+    F1 <- p1[2]
+    #basel1 <- p1[3]
+    theta1 <- p1[4]
+    #yhat1 <- E1 * asin1 + F1 * acos1 + basel1
+
+    E2 <- p2[1]
+    F2 <- p2[2]
+    #basel2 <- p2[3]
+    theta2 <- p2[4]
+    #yhat2 <- E2 * asin2 + F2 * acos2 + basel2
+
+    A2_1 <- (E1^2 + F1^2)
+    A2_2 <- (E2^2 + F2^2)
+    A2_1 * theta1 - A2_2 * theta2
+
+    c(theta1 * 2 * E1, theta1 * 2 * F1, 0, A2_1,
+      - theta2 * 2 * E2, - theta2 * 2 * F2, 0, - A2_2)
+  }
+
+
+  # Lower and upper bounds
+  lb <- c(-Inf,-Inf,-Inf,0, -Inf, -Inf,-Inf, 0)
+  ub <- c(Inf,Inf,Inf,Inf,Inf,Inf,Inf,Inf)
+  #initial values
+
+  ## Error in is.nloptr(ret) :
+  #  If you want to use equality constraints, then you should use one of these algorithms NLOPT_LD_AUGLAG, NLOPT_LN_AUGLAG, NLOPT_LD_AUGLAG_EQ, NLOPT_LN_AUGLAG_EQ, NLOPT_GN_ISRES, NLOPT_LD_SLSQP
+
+  local_opts <- list( "algorithm" = "NLOPT_LD_MMA", "xtol_rel" = 1.0e-15 )
+  "local_opts" = local_opts
+  opts <- list( "algorithm"= "NLOPT_LD_SLSQP",
+                "xtol_rel"= 1.0e-15,
+                "maxeval"= 160000,
+                "local_opts" = local_opts,
+                "print_level" = 0
+                #"check_derivatives"=TRUE
+  )
+
+  res <- nloptr::nloptr ( x0 = x_Ha,
+                  eval_f = eval_f_list,
+                  #eval_grad_f=eval_g,
+                  lb = lb,
+                  ub = ub,
+                  #eval_g_ineq = eval_g_ineq,
+                  eval_g_eq = eval_g_eq,
+                  eval_jac_g_eq = eval_g_eq_jac,
+                  opts = opts,
+                  asin1=asin1,
+                  acos1=acos1,
+                  asin2=asin2,
+                  acos2=acos2)
+
+  #
+  #x_Ha
+  x_H0 <- res$solution
+
+  l0 <- - eval_f_list(x_H0,asin1,acos1,asin2,acos2)$objective
+  la <- - eval_f_list(x_Ha,asin1,acos1,asin2,acos2)$objective
+
+  LR_stat <- -2*(l0-la)
+
+  dfdiff <- 1
+  if(!FN){
+    pvalue <- pchisq(LR_stat,dfdiff,lower.tail = F)
+  } else if(FN){
+    r <- 1
+    k <- 6
+    n <- n1+n2
+    Fstat <- (exp(LR_stat/n) - 1) * (n-k) / r
+    pvalue <- pf(Fstat,df1 = r, df2 = n-k, lower.tail = F)
+  } else{
+    stop("FN has to be TRUE or FALSE")
+  }
+  pvalue
+}
+
+##' Fit sin function
+##'
+##' Fit a sine curve where tt is time, and yy is expression value.
+##' @title Fit Data Based on Sine Curve
+##' @param tt Time vector.
+##' @param yy Expression vector.
+##' @param period Period of the sine curve. Default is 24.
+##' @param parStart Initial value for optimization purpose.
+##' @return A list of amp, phase, offset, peak, A, B, SST, SSE, R2.
+##' Formula 1: \eqn{yy = amp * sin(2\pi/period * (phase + tt)) + offset}
+##' Formula 2: \eqn{yy = A * sin(2\pi/period \times tt) + B * cos(2*\pi/period * tt) + offset}
+##' \item{amp}{Amplitude based on formula 1.}
+##' \item{phase}{Phase based on formula 1, phase is restricted within (0, period).}
+##' \item{offset}{Basal level (vertical shift) based on formula 1 or on formula 2.}
+##' \item{A}{A based on formula 2.}
+##' \item{B}{B based on formula 2.}
+##' \item{tss}{Total sum of square.}
+##' \item{rss}{Residual sum of square, SSE/n is the MLE of the variance sigma square.}
+##' \item{R2}{Pseudo R2 defined as (tss - rss)/tss.}
+##' @author Caleb (copied from Caleb's github)
+##' @export
+##' @examples
+##' set.seed(32608)
+##' n <- 50
+##' tt <- runif(n,0,24)
+##' Amp <- 2
+##' Phase <- 6
+##' Offset <- 3
+##' yy <- Amp * sin(2*pi/24 * (tt + Phase)) + Offset + rnorm(n,0,1)
+##' fitSinCurve(tt, yy)
+
+fitSinCurve <- function(tt, yy, period = 24, parStart = list(amp=3,phase=0, offset=0)){
+
+  getPred <- function(parS, tt) {
+    parS$amp * sin(2*pi/period * (tt + parS$phase)) + parS$offset
+  }
+
+  residFun <- function(p, yy, tt) yy - getPred(p,tt)
+
+  nls.out <- minpack.lm::nls.lm(par=parStart, fn = residFun, yy = yy,	tt = tt)
+
+  apar <- nls.out$par
+
+  amp0 <- apar$amp
+  asign <- sign(amp0)
+  ## restrict amp > 0
+  amp <- amp0 * asign
+
+  phase0 <- apar$phase
+  #phase <- (round(apar$phase) + ifelse(asign==1,0,12)) %% period
+  phase <- (phase0 + ifelse(asign==1,0,period/2)) %% period
+  offset <- apar$offset
+
+  peak <- (period/2 * sign(amp0) - period/4 - phase) %%period
+  if(peak > period/4*3) peak = peak - period
+
+  A <- amp0 * cos(2*pi/period * phase0)
+  B <- amp0 * sin(2*pi/period * phase0)
+
+  rss <- sum(nls.out$fvec^2)
+  tss <- sum((yy - mean(yy))^2)
+  R2 <- 1 - rss/tss
+
+  if(F){
+    amp <- apar$amp
+    phase <- apar$phase
+    offset <- apar$offset
+  }
+
+  res <- list(amp=amp, phase=phase, offset=offset, peak=peak, A=A, B=B, tss=tss, rss=rss, R2=R2)
+  res
+}
 
 diff_rhythmicity_permutation = function(x1.overlap,x2.overlap,t1,t2,gname, period, x1.rhythm, x2.rhythm, nPermutation = 1000,
                                         permutation.save = NULL, permutation.file.label = "gII_vs_gI", parallel.ncores = 1, alpha){

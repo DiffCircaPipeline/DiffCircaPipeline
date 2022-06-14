@@ -13,9 +13,9 @@ RoxygenNote: 7.1.2
 Imports: 
     limma,
     lattice,
+    nloptr,
     minpack.lm,
     circacompare,
-    differentialR2,
     diffCircadian,
     AWFisher,
     Matrix,
