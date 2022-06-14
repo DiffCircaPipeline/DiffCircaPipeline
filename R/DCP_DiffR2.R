@@ -52,7 +52,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
   if(method == "LR"){
     res.list = parallel::mclapply(1:length(x.list), function(a){
       one.res = LR_deltaR2(x.list[[a]]$x1.time, x.list[[a]]$y1,
-                                           x.list[[a]]$x2.time, x.list[[a]]$y2,
+                                           x.list[[a]]$x2.time, x.list[[a]]$y2, period,
                                            FN = TRUE)
       one.res.tab = data.frame(gname = overlap.g[a], R2.1 = x1.rhythm$R2[a], R2.2 = x2.rhythm$R2[a],
                                delta.R2 =  x2.rhythm$R2[a]-x1.rhythm$R2[a], p.R2 = one.res)
