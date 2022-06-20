@@ -117,11 +117,11 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
 #' @export
 DCP_PlotDisplay = function(x = DCP_ScatterPlot(x, genes.plot = NULL,
                                              Info1 = "gI", Info2 = "gII",
-                                             filename = NULL, height = 8, width = 8), id = 1:2){
+                                             filename = NULL, height = 8, width = 8)){
   if(length(x)==1){
-    return(x[id])
+    return(x)
   }else{
-    return(lapply(id, function(a.g){
+    return(lapply(1:length(x[[1]]), function(a.g){
       gridExtra::grid.arrange(x[[1]][[a.g]], x[[2]][[a.g]], ncol = 2)
     }))
   }
