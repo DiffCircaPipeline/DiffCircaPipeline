@@ -118,7 +118,7 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
 DCP_PlotDisplay = function(x = DCP_ScatterPlot(x, genes.plot = NULL,
                                              Info1 = "gI", Info2 = "gII",
                                              filename = NULL, height = 8, width = 8)){
-  if(length(x)==1){
+  if(length(x[[1]])>1){
     return(x)
   }else{
     return(lapply(1:length(x[[1]]), function(a.g){
