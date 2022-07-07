@@ -9,6 +9,7 @@ DCP_Rhythmicity(
   x2 = NULL,
   method = "Sidak_FS",
   period = 24,
+  amp.cutoff = 0,
   alpha = 0.05,
   alpha.FDR = 0.05,
   CI = FALSE,

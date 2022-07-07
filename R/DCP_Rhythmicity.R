@@ -26,7 +26,7 @@
 #' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 #'
 #' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
-DCP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, alpha = 0.05, alpha.FDR = 0.05, CI = FALSE, p.adjust.method = "BH", parallel.ncores  = 1){
+DCP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, amp.cutoff = 0, alpha = 0.05, alpha.FDR = 0.05, CI = FALSE, p.adjust.method = "BH", parallel.ncores  = 1){
 
   x1 = CP_OneGroup(x1, period, alpha, CI, p.adjust.method)
   # x1 = CP_OneGroup(x1, period=24, alpha=0.05, CI=FALSE, p.adjust.method="BH")
@@ -57,6 +57,29 @@ DCP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, alpha 
              rhythm.joint = cbind.data.frame(gname.overlap, action, pM, TOJR))
     colnames(x$rhythm.joint) = c("gname", "action1", "action2", "pG1", "pG2", "TOJR")
     x$rhythm.joint$TOJR.FDR = toTOJR(x, method, alpha.FDR, adjustP = TRUE, p.adjust.method, parallel.ncores)
+    if(amp.cutoff!=0){
+      amp0.genes1 = x$x1$rhythm$gname[x$x1$rhythm$A<amp.cutoff]
+      amp0.genes2 = x$x2$rhythm$gname[x$x2$rhythm$A<amp.cutoff]
+      amp0.genes = unique(c(amp0.genes1, amp0.genes2))
+      amp0.genes.not.arrhy = amp0.genes[amp0.genes%in% x$rhythm.joint$gname[x$rhythm.joint$TOJR!="arrhy"]]
+      amp0.status = lapply(amp0.genes.not.arrhy, function(a.gene){
+        if((a.gene %in% amp0.genes1)&(a.gene %in% amp0.genes2)){
+          return(c(FALSE, FALSE))
+        }else if((a.gene %in% amp0.genes1)&(!(a.gene %in% amp0.genes2))){
+          return(c(FALSE, TRUE))
+        }else{
+          return(c(TRUE, FALSE))
+        }
+      })
+      TOJR.to.change = x$rhythm.joint$TOJR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)]
+      x$rhythm.joint$TOJR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)] = sapply(1:length(amp0.status), function(a){
+        amp.cut(amp0.status[[a]], TOJR.to.change[a])
+      })
+      TOJR.FDR.to.change = x$rhythm.joint$TOJR.FDR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)]
+      x$rhythm.joint$TOJR.FDR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)] = sapply(1:length(amp0.status), function(a){
+        amp.cut(amp0.status[[a]], TOJR.FDR.to.change[a])
+      })
+    }
     return(x)
   }
 }
@@ -862,4 +885,33 @@ fishers.p = function(ps){
   fisher.chi = -2*sum(log(ps))
   p.fisher.chi = stats::pchisq(fisher.chi, 2*length(ps), lower.tail = FALSE)
   return(p.fisher.chi)
+}
+
+amp.cut = function(amp, a.TOJR){
+  #amp is a vector indicating if the amplitudes is greater than the cutoff
+  if(a.TOJR == "arrhy"){
+    return("arrhy")
+  }else if(a.TOJR == "rhyI"){
+    if(amp[1]){
+      return("rhyI")
+    }else{
+      return("arrhy")
+    }
+  }else if(a.TOJR == "rhyII"){
+    if(amp[2]){
+      return("rhyII")
+    }else{
+      return("arrhy")
+    }
+  }else if(a.TOJR == "both"){
+    if(amp[1]&amp[2]){
+      return("both")
+    }else if(amp[1]){
+      return("rhyI")
+    }else if(amp[2]){
+      return("rhyII")
+    }else{
+      return("arrhy")
+    }
+  }
 }
