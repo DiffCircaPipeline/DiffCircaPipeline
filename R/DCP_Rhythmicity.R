@@ -10,11 +10,13 @@
 #' @param x2 group II data. Components are same as x1.
 #' @param method character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher". Default "Sidak_FS" and is recommended.
 #' @param period numeric. The length of the oscillation cycle. Default is 24 for circadian rhythm.
+#' @param amp.cutoff Only genes with amplitude greater than amp.cutoff are consirdered rhythmic
 #' @param alpha numeric. Threshold for rhythmicity p-value in joint rhythmicity categorization. If CI = TRUE, (1-alpha) confidence interval for parameters will be returned.
 #' @param alpha.FDR numeric. Threshold for rhythmicity p-value in joint rhythmicity categorization adjusted for global FDR control.
 #' @param CI logical. Should confidence interval for A, phase and M be returned?
 #' @param p.adjust.method input for p.adjust() in R package `stat`.
 #' @param parallel.ncores integer. Number of cores used if using parallel computing with \code{mclapply()}. Not functional for windows system.
+#' @param amp.cutoff
 #'
 #' @return A list of original x input with rhythmicity analysis estimates. If given two data sets, types of joint rhythmicity will also be available as the list component rhythm.joint.
 #' @export
@@ -46,40 +48,18 @@ DCP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, amp.cu
     action = data.frame(action1, action2)
     pv = data.frame(pS1 = sapply(1:length(action1), function(i){pM[i, action1[i]]}),
                     pS2 = sapply(1:length(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
-    # The model selection procedure---
-    TOJR = unlist(parallel::mclapply(1:nrow(action), function(i){
-      SeqModelSel(action[i, ], pv[i, ], alpha, method)
-    }, mc.cores = parallel.ncores))
-    #NAME:TOJR:type of joint rhythmicity
 
     x = list(x1 = x1, x2 = x2,
              gname_overlap = gname.overlap,
-             rhythm.joint = cbind.data.frame(gname.overlap, action, pM, TOJR))
-    colnames(x$rhythm.joint) = c("gname", "action1", "action2", "pG1", "pG2", "TOJR")
-    x$rhythm.joint$TOJR.FDR = toTOJR(x, method, alpha.FDR, adjustP = TRUE, p.adjust.method, parallel.ncores)
-    if(amp.cutoff!=0){
-      amp0.genes1 = x$x1$rhythm$gname[x$x1$rhythm$A<amp.cutoff]
-      amp0.genes2 = x$x2$rhythm$gname[x$x2$rhythm$A<amp.cutoff]
-      amp0.genes = unique(c(amp0.genes1, amp0.genes2))
-      amp0.genes.not.arrhy = amp0.genes[amp0.genes%in% x$rhythm.joint$gname[x$rhythm.joint$TOJR!="arrhy"]]
-      amp0.status = lapply(amp0.genes.not.arrhy, function(a.gene){
-        if((a.gene %in% amp0.genes1)&(a.gene %in% amp0.genes2)){
-          return(c(FALSE, FALSE))
-        }else if((a.gene %in% amp0.genes1)&(!(a.gene %in% amp0.genes2))){
-          return(c(FALSE, TRUE))
-        }else{
-          return(c(TRUE, FALSE))
-        }
-      })
-      TOJR.to.change = x$rhythm.joint$TOJR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)]
-      x$rhythm.joint$TOJR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)] = sapply(1:length(amp0.status), function(a){
-        amp.cut(amp0.status[[a]], TOJR.to.change[a])
-      })
-      TOJR.FDR.to.change = x$rhythm.joint$TOJR.FDR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)]
-      x$rhythm.joint$TOJR.FDR[match(amp0.genes.not.arrhy, x$rhythm.joint$gname)] = sapply(1:length(amp0.status), function(a){
-        amp.cut(amp0.status[[a]], TOJR.FDR.to.change[a])
-      })
-    }
+             rhythm.joint = cbind.data.frame(gname.overlap, action, pM))
+    colnames(x$rhythm.joint) = c("gname", "action1", "action2", "pG1", "pG2")
+    # The model selection procedure---
+    #NAME:TOJR:type of joint rhythmicity
+    # TOJR = unlist(parallel::mclapply(1:nrow(action), function(i){
+    #   SeqModelSel(action[i, ], pv[i, ], alpha, method)
+    # }, mc.cores = parallel.ncores))
+    x$rhythm.joint$TOJR = toTOJR(x, method, amp.cutoff, alpha, adjustP = FALSE, p.adjust.method, parallel.ncores)
+    x$rhythm.joint$TOJR.FDR = toTOJR(x, method, amp.cutoff, alpha.FDR, adjustP = TRUE, p.adjust.method, parallel.ncores)
     return(x)
   }
 }
@@ -162,10 +142,12 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 #' Title Types of Joint Rhythmicity (TOJR)
 #'
 #' Categorize genes to four types of joint rhythmicity (TOJR).
+#'
 #' @param x one of the following two: \itemize{
 #' \item output of DCP_rhythmicity(x1, x2), both x1 and x2 are not NULL. (A list with the rhythm.joint component).
 #' \item A list of with two outputs from DCP_rhythmicity(x1, x2 = NULL), each using data from a different group. }
 #' @param method character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher".
+#' @param amp.cutoff Only genes with amplitude greater than amp.cutoff are consirdered rhythmic
 #' @param alpha integer. Threshold for rhythmicity p-value in joint rhythmicity categorization.
 #' @param adjustP logic. Should joint rhythmicity categorization be based on adjusted p-value?
 #' @param p.adjust.method input for p.adjust() in R package \code{stat}
@@ -190,7 +172,7 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 #' rhythm.res2 = DCP_Rhythmicity(x1 = x[[2]])
 #' TOJR = toTOJR(x = list(x1 = rhythm.res1, x2 = rhythm.res2),
 #' alpha = 0.05, adjustP = FALSE)
-toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust.method = "BH", parallel.ncores = 1){
+toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP = TRUE, p.adjust.method = "BH", parallel.ncores = 1){
 
   if(is.null(x$rhythm.joint)){
     stopifnot("Please see examples for correct x input" = (length(x)==2)&(!is.null(x[[1]]$rhythm))&(!is.null(x[[2]]$rhythm)))
@@ -207,6 +189,7 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
                     pS2 = sapply(1:length(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
 
   }else{
+    gname.overlap = x$rhythm.joint$gname
     pM = as.data.frame(x$rhythm.joint[, c("pG1", "pG2")])
     action1 = x$rhythm.joint$action1
     action2 = x$rhythm.joint$action2
@@ -231,6 +214,30 @@ toTOJR = function(x, method = "Sidak_FS", alpha = 0.05, adjustP = TRUE, p.adjust
       # SeqModelSel(action[i, ], pv[i, ], alpha, method)
       SeqModelSel(action[i, ], pv[i, ], alpha, method)
     }, mc.cores = parallel.ncores))
+  }
+
+  if(amp.cutoff!=0){
+    amp0.genes1 = x$x1$rhythm$gname[x$x1$rhythm$A<amp.cutoff]
+    amp0.genes2 = x$x2$rhythm$gname[x$x2$rhythm$A<amp.cutoff]
+    amp0.genes = unique(c(amp0.genes1, amp0.genes2))
+    amp0.genes.not.arrhy = amp0.genes[amp0.genes%in% gname.overlap[TOJR_adj!="arrhy"]]
+    amp0.status = lapply(amp0.genes.not.arrhy, function(a.gene){
+      if((a.gene %in% amp0.genes1)&(a.gene %in% amp0.genes2)){
+        return(c(FALSE, FALSE))
+      }else if((a.gene %in% amp0.genes1)&(!(a.gene %in% amp0.genes2))){
+        return(c(FALSE, TRUE))
+      }else{
+        return(c(TRUE, FALSE))
+      }
+    })
+
+    TOJR.to.change = TOJR_adj[match(amp0.genes.not.arrhy, gname.overlap)]
+    if(length(amp0.status)>0){
+      TOJR_adj[match(amp0.genes.not.arrhy, gname.overlap)] = sapply(1:length(amp0.status), function(a){
+        amp.cut(amp0.status[[a]], TOJR.to.change[a])
+      })
+    }
+
   }
 
   return(TOJR_adj)

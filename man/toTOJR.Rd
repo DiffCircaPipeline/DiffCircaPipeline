@@ -7,6 +7,7 @@
 toTOJR(
   x,
   method = "Sidak_FS",
+  amp.cutoff = 0,
   alpha = 0.05,
   adjustP = TRUE,
   p.adjust.method = "BH",
@@ -19,6 +20,8 @@ toTOJR(
 \item A list of with two outputs from DCP_rhythmicity(x1, x2 = NULL), each using data from a different group. }}
 
 \item{method}{character string specifying the algorithm used for joint rhythmicity categorization. Should be one of "Sidak_FS", "Sidak_BS", "VDA", "AWFisher".}
+
+\item{amp.cutoff}{Only genes with amplitude greater than amp.cutoff are consirdered rhythmic}
 
 \item{alpha}{integer. Threshold for rhythmicity p-value in joint rhythmicity categorization.}
 

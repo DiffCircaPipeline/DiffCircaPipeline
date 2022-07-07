@@ -30,6 +30,8 @@ DCP_Rhythmicity(
 
 \item{period}{numeric. The length of the oscillation cycle. Default is 24 for circadian rhythm.}
 
+\item{amp.cutoff}{}
+
 \item{alpha}{numeric. Threshold for rhythmicity p-value in joint rhythmicity categorization. If CI = TRUE, (1-alpha) confidence interval for parameters will be returned.}
 
 \item{alpha.FDR}{numeric. Threshold for rhythmicity p-value in joint rhythmicity categorization adjusted for global FDR control.}
