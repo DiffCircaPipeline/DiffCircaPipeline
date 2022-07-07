@@ -7,7 +7,7 @@
 DCP_PlotDisplay(
   x = DCP_ScatterPlot(x, genes.plot = NULL, Info1 = "gI", Info2 = "gII", filename =
     NULL, height = 8, width = 8),
-  id = 1:2
+  id = NULL
 )
 }
 \arguments{

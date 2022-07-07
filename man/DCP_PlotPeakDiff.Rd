@@ -7,8 +7,8 @@ Make a circos plot for peak time shift between two groups}
 \usage{
 DCP_PlotPeakDiff(
   x,
-  TOJR,
-  dPhase,
+  TOJR = NULL,
+  dPhase = NULL,
   color.cut = list(param = "pvalue", fun = "<", val = 0.05, color.sig = "#b33515",
     color.none = "dark grey"),
   color.df = NULL,
@@ -24,7 +24,7 @@ DCP_PlotPeakDiff(
   axis.text.size = 12,
   legend.position = "right",
   color.diff.refband = "darkgreen",
-  color.diff.connectline = "grey80",
+  color.diff.xlim = "grey40",
   color.diff.baseline = "blue"
 )
 }
@@ -37,7 +37,7 @@ DCP_PlotPeakDiff(
 
 \item{color.cut}{list. Genes will be plotted according a cutoff. Used only when dPhase is not NULL. \itemize{
 \item param parameter used for the cutoff. Should be a column in dPhase.
-\item fun character string. Either "<", or ">"
+\item fun character string. Either "<", ">", or "="
 \item val numeric. The value used for the cutoff.
 \item color.sig color for points that pass the color.cut criterion.
 \item color.none color for points that do not pass the color.cut criterion.}}
@@ -68,7 +68,7 @@ DCP_PlotPeakDiff(
 
 \item{color.diff.refband}{color of the reference band around \eqn{\Delta}peak = 0.}
 
-\item{color.diff.connectline}{color of the start and end of the peak difference range.}
+\item{color.diff.xlim}{color of the start and end of the peak difference range.}
 
 \item{color.diff.baseline}{color of the reference line for \eqn{\Delta}peak = 0.}
 }

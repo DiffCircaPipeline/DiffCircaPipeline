@@ -9,6 +9,7 @@ DCP_ScatterPlot(
   genes.plot = NULL,
   Info1 = "gI",
   Info2 = "gII",
+  text.size = 12,
   filename = NULL,
   file.width = 8,
   file.height = 8
@@ -22,6 +23,8 @@ DCP_ScatterPlot(
 \item{Info1}{character string. Used in the plot title for group I.}
 
 \item{Info2}{character string. Used in the plot title for group II (if exist).}
+
+\item{text.size}{the size of annotation texts.}
 
 \item{filename}{character string of the filename for exporting. If NULL, plots are not saved.}
 

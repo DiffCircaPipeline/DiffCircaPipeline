@@ -32,8 +32,8 @@ DCP_PlotPeakHist(
 \item{RhyBothOnly}{For two-group output, plot only RhyBoth genes or all rhythmic genes in separate groups?}
 
 \item{sig.cut}{A list. Used only for single-group plot, only genes satisfying sig.cut will be plotted. If NULL then genes all genes in regardless of significance in rhythmicity will be plotted. \itemize{
-\item param parameter used for the cutoff. Should be a column in x.
-\item fun character string. Either "<", or ">"
+\item param parameter used for the cutoff. Should be a column in rhythmicity estimates result (e.g. x$rhythm for one-group analysis, or x$x1$rhythm for two-group analysis).
+\item fun character string. Either "<" or ">"
 \item val numeric. The value used for the cutoff}}
 
 \item{time.start}{numeric. What time do you want the phase start? Default is -6, which is midnight if time is in ZT scale.}
