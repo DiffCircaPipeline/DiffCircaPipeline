@@ -118,8 +118,8 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
 DCP_PlotDisplay = function(x = DCP_ScatterPlot(x, genes.plot = NULL,
                                              Info1 = "gI", Info2 = "gII",
                                              filename = NULL, height = 8, width = 8)){
-  if(length(x[[1]])>1){
-    return(x)
+  if(length(x[[1]])==1){
+    return(list(gridExtra::grid.arrange(x[[1]][[1]], x[[2]][[1]], ncol = 2)))
   }else{
     return(lapply(1:length(x[[1]]), function(a.g){
       gridExtra::grid.arrange(x[[1]][[a.g]], x[[2]][[a.g]], ncol = 2)
@@ -146,7 +146,8 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, period,
     ggplot2::ggtitle(amain1)+
     # ggplot2::guides(color=ggplot2::guide_legend(title=category1.label))+
     ggplot2::theme_bw()+
-    ggplot2::theme(legend.position="bottom")
+    ggplot2::theme(legend.position="bottom",
+                   plot.title = ggplot2::element_text(size=axis.text.size+2, hjust = 0.5))
 
   return(p1)
 }
@@ -278,8 +279,8 @@ DCP_PlotHeatmap = function(x, genes.plot = NULL,
 #' @param TOJR toTOJR output. If NULL, rhythm.joint object in x will be used.
 #' @param RhyBothOnly For two-group output, plot only RhyBoth genes or all rhythmic genes in separate groups?
 #' @param sig.cut A list. Used only for single-group plot, only genes satisfying sig.cut will be plotted. If NULL then genes all genes in regardless of significance in rhythmicity will be plotted. \itemize{
-#' \item param parameter used for the cutoff. Should be a column in x.
-#' \item fun character string. Either "<", or ">"
+#' \item param parameter used for the cutoff. Should be a column in rhythmicity estimates result (e.g. x$rhythm for one-group analysis, or x$x1$rhythm for two-group analysis).
+#' \item fun character string. Either "<" or ">"
 #' \item val numeric. The value used for the cutoff}
 #' @param time.start numeric. What time do you want the phase start? Default is -6, which is midnight if time is in ZT scale.
 #' @param Info1 character string. Used in the plot title for group I
@@ -357,8 +358,8 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
                      panel.border = ggplot2::element_blank(),
                      legend.title = ggplot2::element_text(size=axis.text.size*0.8),
                      legend.text = ggplot2::element_text(size=axis.text.size*0.8),
-                     plot.title = ggplot2::element_text(size=axis.text.size+2)) +
-      ggplot2::coord_polar(theta="y", start=a.min)
+                     plot.title = ggplot2::element_text(size=axis.text.size+2, hjust = 0.5)) +
+      ggplot2::coord_polar(theta="y", start=0)
   }else{
 
     stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
@@ -420,8 +421,8 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
                      legend.title = ggplot2::element_text(size=axis.text.size*0.8),
                      legend.text = ggplot2::element_text(size=axis.text.size*0.8),
                      legend.position = legend.position,
-                     plot.title = ggplot2::element_text(size=axis.text.size+2)) +
-      ggplot2::coord_polar(theta="y", start=a.min)+
+                     plot.title = ggplot2::element_text(size=axis.text.size+2, hjust = 0.5)) +
+      ggplot2::coord_polar(theta="y", start=0)+
       {if(GroupSplit)ggplot2::facet_wrap(~group)}+
       {if(GroupSplit)ggplot2::theme(legend.position="none")}
   }
@@ -675,7 +676,7 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
 #' @param dPhase DCP_DiffPar() output with phase shift tested.
 #' @param color.cut list. Genes will be plotted according a cutoff. Used only when dPhase is not NULL. \itemize{
 #' \item param parameter used for the cutoff. Should be a column in dPhase.
-#' \item fun character string. Either "<", or ">"
+#' \item fun character string. Either "<", ">", or "="
 #' \item val numeric. The value used for the cutoff.
 #' \item color.sig color for points that pass the color.cut criterion.
 #' \item color.none color for points that do not pass the color.cut criterion.}
@@ -692,7 +693,7 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
 #' @param axis.text.size numeric. Size for the axis text.
 #' @param legend.position One of "left”, "top", "right", "bottom", or "none"
 #' @param color.diff.refband color of the reference band around \eqn{\Delta}peak = 0.
-#' @param color.diff.connectline color of the start and end of the peak difference range.
+#' @param color.diff.xlim color of the start and end of the peak difference range.
 #' @param color.diff.baseline color of the reference line for \eqn{\Delta}peak = 0.
 #'
 #' @return
@@ -706,17 +707,17 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
 #' rhythm.diffPar = DCP_DiffPar(rhythm.res, "phase")
 #' #make a plot with genes with differential phase p-value<0.05 in a different color
 #' DCP_PlotPeakDiff(rhythm.res, NULL, rhythm.diffPar)
-DCP_PlotPeakDiff = function(x, TOJR, dPhase,
-                           color.cut = list(param = "pvalue", fun = "<", val = 0.05, color.sig = "#b33515", color.none = "dark grey"),
-                           color.df = NULL,
-                           Info1 = "groupI", Info2 = "groupII",
-                           filename = NULL, file.width = 8, file.height = 8,
-                           time.start = -6, concordance.ref = 4,
-                           cir.x.breaks = seq(-12,12, 4), cir.y.breaks = seq(-6,18, 4),
-                           axis.text.size = 12, legend.position="right",
-                           color.diff.refband = "darkgreen",
-                           color.diff.connectline = "grey80",
-                           color.diff.baseline = "blue"){
+DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
+                            color.cut = list(param = "pvalue", fun = "<", val = 0.05, color.sig = "#b33515", color.none = "dark grey"),
+                            color.df = NULL,
+                            Info1 = "groupI", Info2 = "groupII",
+                            filename = NULL, file.width = 8, file.height = 8,
+                            time.start = -6, concordance.ref = 4,
+                            cir.x.breaks = seq(-12,12, 4), cir.y.breaks = seq(-6,18, 4),
+                            axis.text.size = 12, legend.position="right",
+                            color.diff.refband = "darkgreen",
+                            color.diff.xlim = "grey40",
+                            color.diff.baseline = "blue"){
 
   studyType = To.studyType(x)
   stopifnot("DCP_PlotPeakDiff can only be plotted for DCP_Rhythmicity() of two-group analysis. " = studyType == "Two")
@@ -730,7 +731,7 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
 
   if(is.null(dPhase)){
     if((!is.null(color.cut))|(!is.null(color.df))){
-      warning("color.cut and color.df are only used when dPhase is not NULL and thus will be ignored. ")
+      warning("color.cut or color.df input is ignored. color.cut or color.df is only used when dPhase is given. ")
       color.cut = NULL; color.df = NULL
     }
     if(is.null(TOJR)){
@@ -743,7 +744,7 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
 
     }else{
 
-      warning("There is no input for dPhase, TOHR will be used for extracting RhyBoth genes. ")
+      warning("dPhase is not given. TOJR will be used to identify RhyBoth genes. ")
       rhyboth = x$gname_overlap[TOJR == "both"]
 
     }
@@ -752,7 +753,7 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
       warning("Both color.cut and color.df are non-NULL, color.df will be used. ")
       color.cut = NULL
     }
-    warning("dPhase is inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input.")
+    warning("dPhase is given. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input.")
     rhyboth = dPhase$gname
 
   }
@@ -825,13 +826,14 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
   }
 
 
+  reference.unit = abs(cir.y.breaks[1])+abs(utils::tail(cir.y.breaks, 1))
   pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(x = delta.peak2, y = peak1))+
     ggplot2::geom_rect(data=rects, inherit.aes=FALSE, ggplot2::aes(xmin=start, xmax=end, ymin=min(cir.y.breaks),
                                                                    ymax=max(cir.y.breaks), group=group), color="transparent", fill=color.diff.refband, alpha=0.1)+
-    ggplot2::geom_vline(xintercept = c(cir.x.breaks2[1], utils::tail(cir.x.breaks2, 1)), linetype="dashed", color=color.diff.connectline) +
+    ggplot2::geom_vline(xintercept = c(cir.x.breaks2[1], utils::tail(cir.x.breaks2, 1)), linetype="dashed", color=color.diff.xlim) +
     # ggplot2::geom_vline(xintercept = c(-1*concordance.ref,concordance.ref), linetype="dashed", color="darkgreen",size=1, alpha = 0.6) +
     ggplot2::geom_vline(xintercept = highlight.center,  color = color.diff.baseline, alpha = 0.6) +
-    # ggplot2::geom_hline(yintercept = cir.y.grid, color="grey80") +
+    # ggplot2::geom_hline(yintercept = cir.y.grid, color="grey40") +
     ggplot2::geom_point(size=0.4, ggplot2::aes(color = sig.color), alpha = 0.8) +
     {if(!is.null(color.df)) ggplot2::scale_color_manual(name = "color",
                                                         breaks = sig.color.breaks,
@@ -841,11 +843,15 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
                                                          breaks = c("sig"),
                                                          values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
                                                          labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
-    ggplot2::geom_text(data=data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
-    ggplot2::xlab("") + ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
-                                             "Radius: ", "peak difference (", Info2, "-", Info1, ")")) +
-    ggplot2::ggtitle(paste0("Peak difference between ", Info1, " and ", Info2))+
-    ggplot2::scale_x_continuous(breaks = cir.x.breaks2, limits = c(cir.x.breaks2[1]-1.5, utils::tail(cir.x.breaks2, 1)), expand = c(0,0)) +
+    ggplot2::geom_text(data=data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks),
+                       ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, vjust = -1, size=axis.text.size*1/3) +
+    ggplot2::xlab("") +
+    ggplot2::ylab("") +
+    # ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
+    #                      "Radius: ", "peak difference (", Info2, "-", Info1, ")"))+
+    ggplot2::ggtitle(paste0("Peak difference (", Info2, " - ", Info1, ")"))+
+    ggplot2::scale_x_continuous(breaks = cir.x.breaks2, limits = c(cir.x.breaks2[1]-1.5, utils::tail(cir.x.breaks2, 1)+2),
+                                expand = c(0, -2)) +
     ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
                                 labels = cir.y.breaks) +
     ggplot2::theme_bw()+
@@ -856,168 +862,29 @@ DCP_PlotPeakDiff = function(x, TOJR, dPhase,
                    panel.border = ggplot2::element_blank(),
                    legend.title = ggplot2::element_text(size=axis.text.size*0.8),
                    legend.text = ggplot2::element_text(size=axis.text.size*0.8),
-                   plot.title = ggplot2::element_text(size=axis.text.size+2)) +
-    ggplot2::coord_polar(theta="y", start=a.min)
+                   plot.title = ggplot2::element_text(size=axis.text.size+2, hjust = 0.5)) +
+    ggplot2::annotate("segment", x = utils::tail(cir.x.breaks2, 1)+2, xend = utils::tail(cir.x.breaks2, 1)+2,
+                      y = mean(cir.y.breaks)-1.5*reference.unit/24, yend = mean(cir.y.breaks)-0.5*reference.unit/24, arrow = ggplot2::arrow(length = ggplot2::unit(axis.text.size, "pt")),
+                      color = color.diff.xlim)+ #the angle annotation
+    ggplot2::geom_text(data = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
+                                         y = mean(cir.y.breaks)-1.5*reference.unit/24),
+                       ggplot2::aes(x = x, y = y),
+                       vjust = 3.5, #hjust = 0.5,
+                       nudge_y = -0.5,
+                       label = paste0("peak in ", Info1))+
+    ggplot2::annotate("segment", x = cir.x.breaks2[1], xend = utils::tail(cir.x.breaks2, 1)+2,
+                      y = sum(cir.y.breaks[1:2])/2, yend = sum(cir.y.breaks[1:2])/2,
+                      arrow = ggplot2::arrow(length = ggplot2::unit(axis.text.size, "pt")), color = color.diff.xlim)+ # the radius annotation
+    ggplot2::geom_point(data = data.frame(x = cir.x.breaks2, y = sum(cir.y.breaks[1:2])/2),
+                        ggplot2::aes(x = x, y = y),
+                        color = color.diff.xlim, size = 1, shape = 20) + #to create tick like marks
+    ggplot2::geom_text(data = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
+                                         y = sum(cir.y.breaks[1:2])/2),
+                       ggplot2::aes(x = x, y = y),
+                       vjust = -1,
+                       label = expression(Delta*~"peak"))+
+    ggplot2::coord_polar(theta="y", start=0, clip = "off")
 
-
-  if(!is.null(filename)){
-    grDevices::pdf(paste0(pp.file, ".pdf"), width = file.width, height = file.height)
-    print(pp)
-    grDevices::dev.off()
-  }else{
-    print(pp)
-  }
-  return(pp)
-}
-
-#' Circos plot of linked peak time
-#' Make a circos plot for linked peak time between two groups
-#'
-#' @param x DCP_Rhythmicity() output.
-#' @param TOJR toTOJR output. If NULL, rhythm.joint object in x will be used.
-#' @param dPhase DCP_DiffPar() output with phase shift tested.
-#' @param color.cut list. Genes will be plotted according a cutoff. Used only when dPhase is not NULL. \itemize{
-#' \item param parameter used for the cutoff. Should be a column in dPhase.
-#' \item fun character string. Either "<", or ">"
-#' \item val numeric. The value used for the cutoff
-#' \item color.sig color for points that pass the color.cut criterion.
-#' \item color.none color for points that do not pass the color.cut criterion.}
-#' @param color.df data.frame. A more advanced color coding. The data frame should have two columns named color and label. label will be displayed as legend. The color vector should have the same order as genes in dPhase.
-#' @param time.start numeric. What time do you want the phase start? Default is -6, which is midnight if time is in ZT scale.
-#' @param Info1 character string. Used in the plot title for group I
-#' @param Info2 character string. Used in the plot title for group II (if exist).
-#' @param filename character string. The filename for plot export. If NULL, the plot will not be saved.
-#' @param file.width width of the export plot
-#' @param file.height height of the export plot
-#' @param cir.y.breaks numeric. A vector for breaks for the angles. Should start with time.start and end with time.start+period
-#' @param axis.text.size numeric. Size for the axis text.
-#' @param legend.position One of "left”, "top", "right", "bottom", or "none"
-#' @param color.link.low color of the link for genes with smallest |peak difference|
-#' @param color.link.high color of the link for genes with highest |peak difference|
-#'
-#' @return
-#' @export
-#'
-#' @examples
-#' x = DCP_sim_data(ngene=1000, nsample=30, A1=c(2, 3), A2=c(2, 3),
-#' phase1=c(0, pi/4), phase2=c(pi/2, pi*3/2),
-#' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
-#' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
-#' rhythm.diffPar = DCP_DiffPar(rhythm.res, "phase")
-#' DCP_PlotPeakLink(rhythm.res, NULL, rhythm.diffPar)
-#'
-DCP_PlotPeakLink = function(x, TOJR, dPhase,
-                           color.cut = list(param = "pvalue", fun = "<", val = 0.05, color.sig = "#03a1fc", color.none = "dark grey"),
-                           color.df = NULL, time.start = -6,
-                           Info1 = "groupI", Info2 = "groupII",
-                           filename = NULL, file.width = 8, file.height = 8,
-                           cir.y.breaks = seq(-6,18, 4),
-                           axis.text.size = 12, legend.position="right",
-                           color.link.low = "#e8f7ff", color.link.high = "#03a1fc"){
-
-  studyType = To.studyType(x)
-  stopifnot("DCP_PlotPeakLink can only be plotted for DCP_Rhythmicity() of two-group analysis. " = studyType == "Two")
-
-  stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
-  period = x$x1$P
-
-  a.min = time.start
-  a.max = time.start+period
-
-
-  if(is.null(dPhase)){
-    if((!is.null(color.cut))|(!is.null(color.df))){
-      warning("color.cut and color.df are only used when dPhase is not NULL and thus will be ignored. ")
-      color.cut = NULL; color.df = NULL
-    }
-    if(is.null(TOJR)){
-
-      stopifnot("There is no input for TOJR or dPhase, and x$rhythm.joint$TOJR is also NULL." = !is.null(x$rhythm.joint$TOJR))
-      TOJR = x$rhythm.joint$TOJR
-      warning("There is no input for TOJR or dPhase, x$rhythm.joint$TOJR will be used for extracting RhyBoth genes. ")
-      rhyboth = x$rhythm.joint$gname[TOJR == "both"];
-
-    }else{
-
-      warning("There is no input for dPhase, TOHR will be used for extracting RhyBoth genes. ")
-      rhyboth = x$gname_overlap[TOJR == "both"]
-
-    }
-  }else{
-    if((!is.null(color.cut))&(!is.null(color.df))){
-      warning("Both color.cut and color.df are non-NULL, color.df will be used. ")
-      color.cut = NULL
-    }
-    warning("dPhase is inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input.")
-    rhyboth = dPhase$gname
-
-  }
-
-  peak.df = data.frame(peak1 = peak.select(x, rhyboth, "x1"),
-                       peak2 = peak.select(x, rhyboth, "x2"))
-  peak.df$peak1 = adjust.circle(peak.df$peak1, time.start, period)
-  peak.df$peak2 = adjust.circle(peak.df$peak2, time.start, period)
-  peak.df$delta.peak = peak.df$peak2 - peak.df$peak1
-  peak.df$delta.peak[peak.df$delta.peak>(period/2)] = peak.df$delta.peak[peak.df$delta.peak>(period/2)] -period
-  peak.df$delta.peak[peak.df$delta.peak< -(period/2)] = peak.df$delta.peak[peak.df$delta.peak< -(period/2)] +period
-  pp.file = paste0(filename, "_", Info1, "_", Info2, "_PeakDiff")
-
-  peak.df.long = data.frame(peak = c(peak.df$peak1, peak.df$peak2),
-                            delta.peak = rep(peak.df$delta.peak, 2),
-                            group = rep(c(1, 2), each = nrow(peak.df)),
-                            gene =  rep(seq_along(1:nrow(peak.df)), 2))
-
-  if(!is.null(dPhase)){
-    if(!is.null(color.cut)){
-      CheckSigCut(dPhase, color.cut, "dPhase")
-      xx = ifelse(rep(color.cut$param == "delta.peak", nrow(dPhase)), abs(dPhase[, color.cut$param]), dPhase[, color.cut$param])
-      sig.color = .Primitive(color.cut$fun)(xx, color.cut$val)
-      sig.color = ifelse(sig.color, "sig", "none") #red: #b33515
-      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
-      #paste(unlist(color.cut), collapse="")
-    }else if(!is.null(color.df)){
-      sig.color = color.df$label
-      sig.color.breaks = names(table(color.df$label))
-      sig.color.values.ind = apply(table(color.df$color, color.df$label), 2, function(a){which(a!=0)})
-      if(class(sig.color.values.ind)=="list"){
-        stop("Please make sure that label and color in color.df are one-to-one matched. ")
-      }
-      sig.color.values = rownames(table(color.df$color, color.df$label))[sig.color.values.ind]
-    }else{
-      sig.color = NULL
-    }
-  }else{
-    sig.color = NULL
-  }
-
-  pp = ggplot2::ggplot(data = peak.df.long)+
-    ggplot2::geom_line(alpha = 0.3, ggplot2::aes(x = group, y = peak, group = gene, color = abs(delta.peak)))+
-    ggplot2::scale_color_gradient(name = "Line color=|Peak difference|", low = color.link.low, high = color.link.high)+ #very pale blue to not-so-pale blue
-    ggplot2::geom_point(size=2, stroke = 0, alpha = 0.6, shape = 21, ggplot2::aes(x = group, y = peak, fill = rep(sig.color, 2))) + #, ggplot2::aes(color = rep(sig.color, 2))
-    {if(!is.null(color.df)) ggplot2::scale_fill_manual(name = "Point color",
-                                                       breaks = sig.color.breaks,
-                                                       values = sig.color.values,
-                                                       labels = sig.color.breaks)}+
-    {if(!is.null(color.cut)) ggplot2::scale_fill_manual(name = "Point color",
-                                                        breaks = c("sig"),
-                                                        values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
-                                                        labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
-    ggplot2::geom_text(data=data.frame(x=c(1, 2), y=a.min, label=c(Info1, Info2)), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
-    ggplot2::xlab(paste0("")) + ggplot2::ylab("") +
-    ggplot2::ggtitle(paste0("Connected peak time between ", Info1, " and ", Info2))+
-    ggplot2::scale_x_continuous(breaks=seq(0, 2, 1), limits = c(0, 2), expand = c(0,0)) +
-    ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max), labels = cir.y.breaks) +
-    ggplot2::theme_bw()+
-    ggplot2::theme(aspect.ratio = 1, axis.line = ggplot2::element_blank(),
-                   axis.ticks = ggplot2::element_blank(),
-                   axis.text.x = ggplot2::element_text(size = axis.text.size),
-                   axis.text.y = ggplot2::element_blank(),
-                   panel.border = ggplot2::element_blank(),
-                   legend.title = ggplot2::element_text(size=axis.text.size*0.8),
-                   legend.text = ggplot2::element_text(size=axis.text.size*0.8),
-                   legend.position = legend.position,
-                   plot.title = ggplot2::element_text(size=axis.text.size+2)) +
-    ggplot2::coord_polar(theta="y", start=a.min)
 
 
   if(!is.null(filename)){
@@ -1029,6 +896,166 @@ DCP_PlotPeakLink = function(x, TOJR, dPhase,
   }
   return(pp)
 }
+
+#' #' Circos plot of linked peak time
+#' #' Make a circos plot for linked peak time between two groups
+#' #'
+#' #' @param x DCP_Rhythmicity() output.
+#' #' @param TOJR toTOJR output. If NULL, rhythm.joint object in x will be used.
+#' #' @param dPhase DCP_DiffPar() output with phase shift tested.
+#' #' @param color.cut list. Genes will be plotted according a cutoff. Used only when dPhase is not NULL. \itemize{
+#' #' \item param parameter used for the cutoff. Should be a column in dPhase.
+#' #' \item fun character string. Either "<", ">", or "="
+#' #' \item val numeric. The value used for the cutoff
+#' #' \item color.sig color for points that pass the color.cut criterion.
+#' #' \item color.none color for points that do not pass the color.cut criterion.}
+#' #' @param color.df data.frame. A more advanced color coding. The data frame should have two columns named color and label. label will be displayed as legend. The color vector should have the same order as genes in dPhase.
+#' #' @param time.start numeric. What time do you want the phase start? Default is -6, which is midnight if time is in ZT scale.
+#' #' @param Info1 character string. Used in the plot title for group I
+#' #' @param Info2 character string. Used in the plot title for group II (if exist).
+#' #' @param filename character string. The filename for plot export. If NULL, the plot will not be saved.
+#' #' @param file.width width of the export plot
+#' #' @param file.height height of the export plot
+#' #' @param cir.y.breaks numeric. A vector for breaks for the angles. Should start with time.start and end with time.start+period
+#' #' @param axis.text.size numeric. Size for the axis text.
+#' #' @param legend.position One of "left”, "top", "right", "bottom", or "none"
+#' #' @param color.link.low color of the link for genes with smallest |peak difference|
+#' #' @param color.link.high color of the link for genes with highest |peak difference|
+#' #'
+#' #' @return
+#' #' @export
+#' #'
+#' #' @examples
+#' #' x = DCP_sim_data(ngene=1000, nsample=30, A1=c(2, 3), A2=c(2, 3),
+#' #' phase1=c(0, pi/4), phase2=c(pi/2, pi*3/2),
+#' #' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
+#' #' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
+#' #' rhythm.diffPar = DCP_DiffPar(rhythm.res, "phase")
+#' #' DCP_PlotPeakLink(rhythm.res, NULL, rhythm.diffPar)
+#' #'
+#' DCP_PlotPeakLink = function(x, TOJR, dPhase,
+#'                            color.cut = list(param = "pvalue", fun = "<", val = 0.05, color.sig = "#03a1fc", color.none = "dark grey"),
+#'                            color.df = NULL, time.start = -6,
+#'                            Info1 = "groupI", Info2 = "groupII",
+#'                            filename = NULL, file.width = 8, file.height = 8,
+#'                            cir.y.breaks = seq(-6,18, 4),
+#'                            axis.text.size = 12, legend.position="right",
+#'                            color.link.low = "#e8f7ff", color.link.high = "#03a1fc"){
+#'
+#'   studyType = To.studyType(x)
+#'   stopifnot("DCP_PlotPeakLink can only be plotted for DCP_Rhythmicity() of two-group analysis. " = studyType == "Two")
+#'
+#'   stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
+#'   period = x$x1$P
+#'
+#'   a.min = time.start
+#'   a.max = time.start+period
+#'
+#'
+#'   if(is.null(dPhase)){
+#'     if((!is.null(color.cut))|(!is.null(color.df))){
+#'       warning("color.cut and color.df are only used when dPhase is not NULL and thus will be ignored. ")
+#'       color.cut = NULL; color.df = NULL
+#'     }
+#'     if(is.null(TOJR)){
+#'
+#'       stopifnot("There is no input for TOJR or dPhase, and x$rhythm.joint$TOJR is also NULL." = !is.null(x$rhythm.joint$TOJR))
+#'       TOJR = x$rhythm.joint$TOJR
+#'       warning("There is no input for TOJR or dPhase, x$rhythm.joint$TOJR will be used for extracting RhyBoth genes. ")
+#'       rhyboth = x$rhythm.joint$gname[TOJR == "both"];
+#'
+#'     }else{
+#'
+#'       warning("There is no input for dPhase, TOHR will be used for extracting RhyBoth genes. ")
+#'       rhyboth = x$gname_overlap[TOJR == "both"]
+#'
+#'     }
+#'   }else{
+#'     if((!is.null(color.cut))&(!is.null(color.df))){
+#'       warning("Both color.cut and color.df are non-NULL, color.df will be used. ")
+#'       color.cut = NULL
+#'     }
+#'     warning("dPhase is inputted. Genes contained in dPhase will be used as RhyBoth in regardless of any TOJR input.")
+#'     rhyboth = dPhase$gname
+#'
+#'   }
+#'
+#'   peak.df = data.frame(peak1 = peak.select(x, rhyboth, "x1"),
+#'                        peak2 = peak.select(x, rhyboth, "x2"))
+#'   peak.df$peak1 = adjust.circle(peak.df$peak1, time.start, period)
+#'   peak.df$peak2 = adjust.circle(peak.df$peak2, time.start, period)
+#'   peak.df$delta.peak = peak.df$peak2 - peak.df$peak1
+#'   peak.df$delta.peak[peak.df$delta.peak>(period/2)] = peak.df$delta.peak[peak.df$delta.peak>(period/2)] -period
+#'   peak.df$delta.peak[peak.df$delta.peak< -(period/2)] = peak.df$delta.peak[peak.df$delta.peak< -(period/2)] +period
+#'   pp.file = paste0(filename, "_", Info1, "_", Info2, "_PeakDiff")
+#'
+#'   peak.df.long = data.frame(peak = c(peak.df$peak1, peak.df$peak2),
+#'                             delta.peak = rep(peak.df$delta.peak, 2),
+#'                             group = rep(c(1, 2), each = nrow(peak.df)),
+#'                             gene =  rep(seq_along(1:nrow(peak.df)), 2))
+#'
+#'   if(!is.null(dPhase)){
+#'     if(!is.null(color.cut)){
+#'       CheckSigCut(dPhase, color.cut, "dPhase")
+#'       xx = ifelse(rep(color.cut$param == "delta.peak", nrow(dPhase)), abs(dPhase[, color.cut$param]), dPhase[, color.cut$param])
+#'       sig.color = .Primitive(color.cut$fun)(xx, color.cut$val)
+#'       sig.color = ifelse(sig.color, "sig", "none") #red: #b33515
+#'       legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
+#'       #paste(unlist(color.cut), collapse="")
+#'     }else if(!is.null(color.df)){
+#'       sig.color = color.df$label
+#'       sig.color.breaks = names(table(color.df$label))
+#'       sig.color.values.ind = apply(table(color.df$color, color.df$label), 2, function(a){which(a!=0)})
+#'       if(class(sig.color.values.ind)=="list"){
+#'         stop("Please make sure that label and color in color.df are one-to-one matched. ")
+#'       }
+#'       sig.color.values = rownames(table(color.df$color, color.df$label))[sig.color.values.ind]
+#'     }else{
+#'       sig.color = NULL
+#'     }
+#'   }else{
+#'     sig.color = NULL
+#'   }
+#'
+#'   pp = ggplot2::ggplot(data = peak.df.long)+
+#'     ggplot2::geom_line(alpha = 0.3, ggplot2::aes(x = group, y = peak, group = gene, color = abs(delta.peak)))+
+#'     ggplot2::scale_color_gradient(name = "Line color=|Peak difference|", low = color.link.low, high = color.link.high)+ #very pale blue to not-so-pale blue
+#'     ggplot2::geom_point(size=2, stroke = 0, alpha = 0.6, shape = 21, ggplot2::aes(x = group, y = peak, fill = rep(sig.color, 2))) + #, ggplot2::aes(color = rep(sig.color, 2))
+#'     {if(!is.null(color.df)) ggplot2::scale_fill_manual(name = "Point color",
+#'                                                        breaks = sig.color.breaks,
+#'                                                        values = sig.color.values,
+#'                                                        labels = sig.color.breaks)}+
+#'     {if(!is.null(color.cut)) ggplot2::scale_fill_manual(name = "Point color",
+#'                                                         breaks = c("sig"),
+#'                                                         values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
+#'                                                         labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
+#'     ggplot2::geom_text(data=data.frame(x=c(1, 2), y=a.min, label=c(Info1, Info2)), ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, size=axis.text.size*1/3) +
+#'     ggplot2::xlab(paste0("")) + ggplot2::ylab("") +
+#'     ggplot2::ggtitle(paste0("Connected peak time between ", Info1, " and ", Info2))+
+#'     ggplot2::scale_x_continuous(breaks=seq(0, 2, 1), limits = c(0, 2), expand = c(0,0)) +
+#'     ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max), labels = cir.y.breaks) +
+#'     ggplot2::theme_bw()+
+#'     ggplot2::theme(aspect.ratio = 1, axis.line = ggplot2::element_blank(),
+#'                    axis.ticks = ggplot2::element_blank(),
+#'                    axis.text.x = ggplot2::element_text(size = axis.text.size),
+#'                    axis.text.y = ggplot2::element_blank(),
+#'                    panel.border = ggplot2::element_blank(),
+#'                    legend.title = ggplot2::element_text(size=axis.text.size*0.8),
+#'                    legend.text = ggplot2::element_text(size=axis.text.size*0.8),
+#'                    legend.position = legend.position,
+#'                    plot.title = ggplot2::element_text(size=axis.text.size+2, hjust = 0.5)) +
+#'     ggplot2::coord_polar(theta="y", start=0)
+#'
+#'
+#'   if(!is.null(filename)){
+#'     grDevices::pdf(paste0(pp.file, ".pdf"), width = file.width, height = file.height)
+#'     print(pp)
+#'     grDevices::dev.off()
+#'   }else{
+#'     print(pp)
+#'   }
+#'   return(pp)
+#' }
 
 # Functions for phase plots -----------------------------------------------
 adjust.circle = function(x, a.min = -6,  period = 24){
