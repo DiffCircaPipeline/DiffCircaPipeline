@@ -144,7 +144,7 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, period,
     apar1$M+apar1$A*cos(2*pi/period*x+apar1$phase)
   }
   amain1 <- paste0(specInfo1, " " ,geneName,
-                   "\n",  " p=", round(apar1$pvalue, 4), ", ", "R2= ", round(apar1$R2, 2), ", A= ", round(apar1$A, 2), ", peak= ", round(apar1$peak, 1),
+                   "\n",  " p=", round(apar1$pvalue, 4), ", ", "R2= ", round(apar1$R2, 2), ", A= ", round(apar1$A, 2), ", phase= ", round(apar1$peak, 1),
                    "\n", "sigma= ", round(apar1$sigma, 2))
 
   df = data.frame(Time = tod1, Expression = expr1)
@@ -697,12 +697,12 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
 #' @param file.width width of the export plot
 #' @param file.height height of the export plot
 #' @param concordance.ref The radius where the concordance reference line be plotted away from \eqn{\Delta}peak = 0.
-#' @param cir.x.breaks numeric. A vector for breaks for the radius (peak difference). Should only contains values from -period/2 to period/2 and it is recommended that the break is equal spaced.
+#' @param cir.x.breaks numeric. A vector for breaks for the radius (phase difference). Should only contains values from -period/2 to period/2 and it is recommended that the break is equal spaced.
 #' @param cir.y.breaks numeric. A vector for breaks for the angles. Should start with time.start and end with time.start+period
 #' @param axis.text.size numeric. Size for the axis text.
 #' @param legend.position One of "left”, "top", "right", "bottom", or "none"
 #' @param color.diff.refband color of the reference band around \eqn{\Delta}peak = 0.
-#' @param color.diff.xlim color of the start and end of the peak difference range.
+#' @param color.diff.xlim color of the start and end of the phase difference range.
 #' @param color.diff.baseline color of the reference line for \eqn{\Delta}peak = 0.
 #'
 #' @return
@@ -782,7 +782,7 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
       xx = ifelse(rep(color.cut$param == "delta.peak", nrow(dPhase)), abs(dPhase[, color.cut$param]), dPhase[, color.cut$param])
       sig.color = .Primitive(color.cut$fun)(xx, color.cut$val)
       sig.color = ifelse(sig.color, "sig", "none") #red: #b33515
-      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|peak difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
+      legend.label = ifelse(color.cut$param == "delta.peak", paste0("|phase difference|", color.cut$fun, color.cut$val), c(paste(unlist(color.cut[1:3]), collapse="")))
       #paste(unlist(color.cut), collapse="")
     }else if(!is.null(color.df)){
       sig.color = color.df$label
@@ -858,7 +858,7 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
     ggplot2::ylab("") +
     # ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
     #                      "Radius: ", "peak difference (", Info2, "-", Info1, ")"))+
-    ggplot2::ggtitle(paste0("Peak difference (", Info2, " - ", Info1, ")"))+
+    ggplot2::ggtitle(paste0("Phase difference (", Info2, " - ", Info1, ")"))+
     ggplot2::scale_x_continuous(breaks = cir.x.breaks2, limits = c(cir.x.breaks2[1]-1.5, utils::tail(cir.x.breaks2, 1)+2),
                                 expand = c(0, -2)) +
     ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
