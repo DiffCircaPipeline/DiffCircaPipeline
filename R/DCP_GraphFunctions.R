@@ -358,8 +358,8 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
       ggplot2::geom_histogram(binwidth = single.binwidth, fill = color.hist) +
       ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
                                   labels = cir.y.breaks) +
-      ggplot2::xlab("") + ggplot2::ylab(paste0("Peak time in ", Info1)) +
-      ggplot2::ggtitle(paste0("Peak histogram of ", Info1))+
+      ggplot2::xlab("") + ggplot2::ylab(paste0("Phase in ", Info1)) +
+      ggplot2::ggtitle(paste0("Histogram of ohase in", Info1))+
       ggplot2::theme_bw()+
       ggplot2::theme(aspect.ratio = 1, axis.line = ggplot2::element_blank(),
                      axis.text.x = ggplot2::element_text(size = axis.text.size),
@@ -880,7 +880,8 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
                        ggplot2::aes(x = x, y = y),
                        vjust = 3.5, #hjust = 0.5,
                        nudge_y = -0.5,
-                       label = paste0("peak in ", Info1))+
+                       label = as.expression(bquote(phi~"in"~.(Info1))))+
+    # paste0("peak in ", Info1)
     ggplot2::annotate("segment", x = cir.x.breaks2[1], xend = utils::tail(cir.x.breaks2, 1)+2,
                       y = sum(cir.y.breaks[1:2])/2, yend = sum(cir.y.breaks[1:2])/2,
                       arrow = ggplot2::arrow(length = ggplot2::unit(axis.text.size, "pt")), color = color.diff.xlim)+ # the radius annotation
@@ -891,7 +892,7 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
                                          y = sum(cir.y.breaks[1:2])/2),
                        ggplot2::aes(x = x, y = y),
                        vjust = -1,
-                       label = expression(Delta*~"peak"))+
+                       label = expression(Delta~phi))+
     ggplot2::coord_polar(theta="y", start=0, clip = "off")
 
 
