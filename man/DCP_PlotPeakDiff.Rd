@@ -58,7 +58,7 @@ DCP_PlotPeakDiff(
 
 \item{concordance.ref}{The radius where the concordance reference line be plotted away from \eqn{\Delta}peak = 0.}
 
-\item{cir.x.breaks}{numeric. A vector for breaks for the radius (peak difference). Should only contains values from -period/2 to period/2 and it is recommended that the break is equal spaced.}
+\item{cir.x.breaks}{numeric. A vector for breaks for the radius (phase difference). Should only contains values from -period/2 to period/2 and it is recommended that the break is equal spaced.}
 
 \item{cir.y.breaks}{numeric. A vector for breaks for the angles. Should start with time.start and end with time.start+period}
 
@@ -68,7 +68,7 @@ DCP_PlotPeakDiff(
 
 \item{color.diff.refband}{color of the reference band around \eqn{\Delta}peak = 0.}
 
-\item{color.diff.xlim}{color of the start and end of the peak difference range.}
+\item{color.diff.xlim}{color of the start and end of the phase difference range.}
 
 \item{color.diff.baseline}{color of the reference line for \eqn{\Delta}peak = 0.}
 }
