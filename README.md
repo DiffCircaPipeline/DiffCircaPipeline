@@ -1,5 +1,7 @@
 # DiffCircaPipeline R package
+
 ## Install from github
+
 * In R console
 
 ```{R}
@@ -21,3 +23,6 @@ devtools::install_github("DiffCircaPipeline/Rpackage")
 # devtools::install_github("DiffCircaPipeline/Rpackage@main") #run this if the above line does not work. 
 ```
 
+## Tutorial 
+
+The tutorial can be found at https://diffcircapipeline.github.io. 
