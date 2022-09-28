@@ -440,7 +440,7 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
     print(pp)
     grDevices::dev.off()
   }else{
-    print(pp)
+    # print(pp)
   }
   return(pp)
 }
@@ -670,7 +670,7 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
     print(pp)
     grDevices::dev.off()
   }else{
-    print(pp)
+    # print(pp)
   }
   return(pp)
 
@@ -749,7 +749,6 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
       TOJR = x$rhythm.joint$TOJR
       warning("There is no input for TOJR or dPhase, x$rhythm.joint$TOJR will be used for extracting RhyBoth genes. ")
       rhyboth = x$rhythm.joint$gname[TOJR == "both"];
-      print(1)
 
     }else{
 
@@ -902,7 +901,7 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
     print(pp)
     grDevices::dev.off()
   }else{
-    print(pp)
+    # print(pp)
   }
   return(pp)
 }
