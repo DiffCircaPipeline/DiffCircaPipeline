@@ -20,7 +20,7 @@ DCP_getZT = function(t, lat, long, ZT.min = -6){
   #check if input is POSIXlt
   stopifnot("Please input t as POSIXlt format. \n
             Time data can be converted to POSIXlt with as.POSIXlt(). Notice that Sys.timezone() will be used if you did not specify correct tz in as.POSIXlt(). " =
-              sum(class(t)=="POSIXlt")>0)
+              "POSIXlt" %in% class(t))
   stopifnot("lat and long should both be vectors" = is.vector(lat)&is.vector(long))
   stopifnot("Please make sure that t, lat, and long are of the same lengths" = length(t)==length(lat)&length(t)==length(long))
 
@@ -39,7 +39,7 @@ DCP_getZT = function(t, lat, long, ZT.min = -6){
 
   date.time.flag = 0
   corrected.time = vector()
-  for(i in 1:length(t)){
+  for(i in seq_along(t)){
     a.t = t[i]
     if(t_UTC_num[i]+cur_sunrise$timezone[i]-cur_sunrise$sunrise[i]>=0){
       corrected.time[i]<- t_UTC_num[i]+cur_sunrise$timezone[i]-cur_sunrise$sunrise[i]

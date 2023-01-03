@@ -50,10 +50,11 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
   }
 
   if(is.null(genes.plot)){
-    genes.plot = x1$gname[order(x1$rhythm$pvalue)][1:ifelse(length(x1$gname)>10, 10, length(x1$gname))]
+    n.to.plot = ifelse(length(x1$gname)>10, 10, length(x1$gname))
+    genes.plot = x1$gname[order(x1$rhythm$pvalue)][seq_along(n.to.plot)]
   }
   P = x1$P
-  p1.list = lapply(1:length(genes.plot), function(a){
+  p1.list = lapply(seq_along(genes.plot), function(a){
     gene1 = genes.plot[a]
     t1 = x1$time
     expr1 = as.numeric(x1$data[match(gene1, x1$gname),])
@@ -69,7 +70,7 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
   if(!is.null(x2)){
 
     p2.list0 =
-      lapply(1:length(genes.plot), function(a){
+      lapply(seq_along(genes.plot), function(a){
         gene2 = genes.plot[a]
         t2 = x2$time
         expr1 = as.numeric(x1$data[match(gene2, x1$gname),])
@@ -90,11 +91,11 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
   if(!is.null(filename)){
     grDevices::pdf(filename, file.width, file.height)
     if(is.null(x2)){
-      lapply(1:length(p1.list), function(a){
+      lapply(seq_along(p1.list), function(a){
         print(p1.list[[a]])
       })
     }else{
-      lapply(1:length(p1.list), function(a){
+      lapply(seq_along(p1.list), function(a){
         gridExtra::grid.arrange(p1.list[[a]], p2.list[[a]], ncol = 2)
       })
     }
@@ -115,17 +116,27 @@ DCP_ScatterPlot = function(x, genes.plot = NULL,
 #'
 #' @param x DCP_ScatterPlot output
 #' @param id integer. Indexes for plots to display.
-#'
+#' @return Plots returned
 #' @export
-DCP_PlotDisplay = function(x = DCP_ScatterPlot(x, genes.plot = NULL,
-                                             Info1 = "gI", Info2 = "gII",
-                                             filename = NULL, height = 8, width = 8),
+#' @examples
+#' x = DCP_sim_data(ngene=1000, nsample=30, A1=c(1, 3), A2=c(1, 3),
+#' phase1=c(0, pi/4), phase2=c(pi/4, pi/2),
+#' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
+#'
+#' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
+#' rhythm.plots = DCP_ScatterPlot(rhythm.res)
+#' #to display plot in Rstudio use DCP_PlotDisplay()
+#' #display the first five plots
+#' DCP_PlotDisplay(rhythm.plots, id = 1:5)
+DCP_PlotDisplay = function(x, # = DCP_ScatterPlot(x, genes.plot = NULL,
+                              #               Info1 = "gI", Info2 = "gII",
+                              #               filename = NULL),
                            id = NULL){
   if(length(x[[1]])==1){
     return(list(gridExtra::grid.arrange(x[[1]][[1]], x[[2]][[1]], ncol = 2)))
   }else{
     if(is.null(id)){
-      return(lapply(1:length(x[[1]]), function(a.g){
+      return(lapply(seq_along(x[[1]]), function(a.g){
         gridExtra::grid.arrange(x[[1]][[a.g]], x[[2]][[a.g]], ncol = 2)
       }))
     }else{
@@ -148,7 +159,7 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, period,
                    "\n", "sigma= ", round(apar1$sigma, 2))
 
   df = data.frame(Time = tod1, Expression = expr1)
-  p1 = ggplot2::ggplot(df, ggplot2::aes(x = Time, y = Expression))+
+  p1 = ggplot2::ggplot(df, ggplot2::aes(x = df$Time, y = df$Expression))+
     ggplot2::geom_point(size = 2)+
     ggplot2::geom_function(fun = fun.cosinor, color = "red", size = 2)+
     ggplot2::ylim(myylim[1], myylim[2])+
@@ -174,6 +185,7 @@ circadianDrawing_one = function(tod1, expr1, apar1, gene1, period,
 #' @param file.width height of the export plot
 #' @param file.height width of the export plot
 #'
+#' @return Plots returned
 #' @export
 #'
 #' @examples
@@ -208,7 +220,8 @@ DCP_PlotHeatmap = function(x, genes.plot = NULL,
   }
 
   if(is.null(genes.plot)){
-    genes.plot = x1$rhythm$gname[order(x1$rhythm$pvalue)][1:ifelse(nrow(x1$rhythm)>100, 100, nrow(x1$rhythm))]
+    n.to.plot = ifelse(nrow(x1$rhythm)>100, 100, nrow(x1$rhythm))
+    genes.plot = x1$rhythm$gname[order(x1$rhythm$pvalue)][seq_along(n.to.plot)]
     warning()
   }
   stopifnot("x1 is not given" = !is.null(x1))
@@ -304,7 +317,7 @@ DCP_PlotHeatmap = function(x, genes.plot = NULL,
 #' @param axis.text.size Size for the axis text.
 #' @param legend.position One of "left”, "top", "right", "bottom", or "none"
 #'
-#' @return
+#' @return a ggplot2 object.
 #' @export
 #'
 #' @examples
@@ -354,7 +367,7 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
     peak.df$peak = adjust.circle(peak.df$peak, time.start, period)
     pp.file = paste0(filename, "_", Info1, "_PeakHist")
 
-    pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(y = peak))+
+    pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(y = peak.df$peak))+
       ggplot2::geom_histogram(binwidth = single.binwidth, fill = color.hist) +
       ggplot2::scale_y_continuous(breaks = cir.y.breaks, limits = c(a.min,a.max),
                                   labels = cir.y.breaks) +
@@ -412,7 +425,7 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
     peak.df.long$peak = adjust.circle(peak.df.long$peak, time.start, period)
 
     pp.file = paste0(filename, "_", Info1, "_", Info2, "_PeakHist")
-    pp = ggplot2::ggplot(data = peak.df.long, ggplot2::aes(y = peak, fill = group))+
+    pp = ggplot2::ggplot(data = peak.df.long, ggplot2::aes(y = peak.df.long$peak, fill = peak.df.long$group))+
       #binwidth = single.binwidth, fill = "#3374b0"
       ggplot2::geom_histogram(binwidth = single.binwidth, position = 'identity', alpha = 0.6)+
       ggplot2::xlab(paste0("")) + ggplot2::ylab("") +
@@ -466,7 +479,7 @@ DCP_PlotPeakHist = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list(
 #' @param axis.text.size Size for the axis text.
 #' @param legend.position One of "left”, "top", "right", "bottom", or "none"
 #'
-#' @return
+#' @return a ggplot2 object
 #' @export
 #'
 #' @examples
@@ -705,7 +718,7 @@ DCP_PlotPeakRadar = function(x, TOJR = NULL, RhyBothOnly = FALSE, sig.cut = list
 #' @param color.diff.xlim color of the start and end of the phase difference range.
 #' @param color.diff.baseline color of the reference line for \eqn{\Delta}peak = 0.
 #'
-#' @return
+#' @return a ggplot2 object
 #' @export
 #'
 #' @examples
@@ -787,7 +800,7 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
       sig.color = color.df$label
       sig.color.breaks = names(table(color.df$label))
       sig.color.values.ind = apply(table(color.df$color, color.df$label), 2, function(a){which(a!=0)})
-      if(class(sig.color.values.ind)=="list"){
+      if(is.list(sig.color.values.ind)){
         stop("Please make sure that label and color in color.df are one-to-one matched. ")
       }
       sig.color.values = rownames(table(color.df$color, color.df$label))[sig.color.values.ind]
@@ -835,9 +848,15 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
 
 
   reference.unit = abs(cir.y.breaks[1])+abs(utils::tail(cir.y.breaks, 1))
-  pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(x = delta.peak2, y = peak1))+
-    ggplot2::geom_rect(data=rects, inherit.aes=FALSE, ggplot2::aes(xmin=start, xmax=end, ymin=min(cir.y.breaks),
-                                                                   ymax=max(cir.y.breaks), group=group), color="transparent", fill=color.diff.refband, alpha=0.1)+
+  df2 = data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks)
+  df3 = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
+                   y = mean(cir.y.breaks)-1.5*reference.unit/24)
+  df4 = data.frame(x = cir.x.breaks2, y = sum(cir.y.breaks[1:2])/2)
+  df5 = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
+                   y = sum(cir.y.breaks[1:2])/2)
+  pp = ggplot2::ggplot(data = peak.df,ggplot2::aes(x = peak.df$delta.peak2, y = peak.df$peak1))+
+    ggplot2::geom_rect(data=rects, inherit.aes=FALSE, ggplot2::aes(xmin=rects$start, xmax=rects$end, ymin=min(cir.y.breaks),
+                                                                   ymax=max(cir.y.breaks), group=rects$group), color="transparent", fill=color.diff.refband, alpha=0.1)+
     ggplot2::geom_vline(xintercept = c(cir.x.breaks2[1], utils::tail(cir.x.breaks2, 1)), linetype="dashed", color=color.diff.xlim) +
     # ggplot2::geom_vline(xintercept = c(-1*concordance.ref,concordance.ref), linetype="dashed", color="darkgreen",size=1, alpha = 0.6) +
     ggplot2::geom_vline(xintercept = highlight.center,  color = color.diff.baseline, alpha = 0.6) +
@@ -851,8 +870,8 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
                                                          breaks = c("sig"),
                                                          values = c("sig" = color.cut$color.sig, "none"= color.cut$color.none),
                                                          labels=c(paste(unlist(color.cut[1:3]), collapse="")))}+
-    ggplot2::geom_text(data=data.frame(x=cir.x.breaks2, y=sum(cir.y.breaks[1:2])/2, label=cir.x.breaks),
-                       ggplot2::aes(x=x, y=y, label = label), nudge_x = -0.2, vjust = -1, size=axis.text.size*1/3) +
+    ggplot2::geom_text(data=df2,
+                       ggplot2::aes(x=df2$x, y=df2$y, label = df2$label), nudge_x = -0.2, vjust = -1, size=axis.text.size*1/3) +
     ggplot2::xlab("") +
     ggplot2::ylab("") +
     # ggplot2::ylab(paste0("Angles: peak time in ", Info1, "\n",
@@ -874,9 +893,8 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
     ggplot2::annotate("segment", x = utils::tail(cir.x.breaks2, 1)+2, xend = utils::tail(cir.x.breaks2, 1)+2,
                       y = mean(cir.y.breaks)-1.5*reference.unit/24, yend = mean(cir.y.breaks)-0.5*reference.unit/24, arrow = ggplot2::arrow(length = ggplot2::unit(axis.text.size, "pt")),
                       color = color.diff.xlim)+ #the angle annotation
-    ggplot2::geom_text(data = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
-                                         y = mean(cir.y.breaks)-1.5*reference.unit/24),
-                       ggplot2::aes(x = x, y = y),
+    ggplot2::geom_text(data = df3,
+                       ggplot2::aes(x = df3$x, y = df3$y),
                        vjust = 3.5, #hjust = 0.5,
                        nudge_y = -0.5,
                        label = as.expression(bquote(phi~"in"~.(Info1))))+
@@ -884,12 +902,11 @@ DCP_PlotPeakDiff = function(x, TOJR = NULL, dPhase = NULL,
     ggplot2::annotate("segment", x = cir.x.breaks2[1], xend = utils::tail(cir.x.breaks2, 1)+2,
                       y = sum(cir.y.breaks[1:2])/2, yend = sum(cir.y.breaks[1:2])/2,
                       arrow = ggplot2::arrow(length = ggplot2::unit(axis.text.size, "pt")), color = color.diff.xlim)+ # the radius annotation
-    ggplot2::geom_point(data = data.frame(x = cir.x.breaks2, y = sum(cir.y.breaks[1:2])/2),
-                        ggplot2::aes(x = x, y = y),
+    ggplot2::geom_point(data = df4,
+                        ggplot2::aes(x = df4$x, y = df4$y),
                         color = color.diff.xlim, size = 1, shape = 20) + #to create tick like marks
-    ggplot2::geom_text(data = data.frame(x = utils::tail(cir.x.breaks2, 1)+2,
-                                         y = sum(cir.y.breaks[1:2])/2),
-                       ggplot2::aes(x = x, y = y),
+    ggplot2::geom_text(data = df5,
+                       ggplot2::aes(x = df5$x, y = df5$y),
                        vjust = -1,
                        label = expression(Delta~phi))+
     ggplot2::coord_polar(theta="y", start=0, clip = "off")

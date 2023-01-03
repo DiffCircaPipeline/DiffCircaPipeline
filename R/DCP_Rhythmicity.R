@@ -16,7 +16,6 @@
 #' @param CI logical. Should confidence interval for A, phase and M be returned?
 #' @param p.adjust.method input for p.adjust() in R package `stat`.
 #' @param parallel.ncores integer. Number of cores used if using parallel computing with \code{mclapply()}. Not functional for windows system.
-#' @param amp.cutoff
 #'
 #' @return A list of original x input with rhythmicity analysis estimates. If given two data sets, types of joint rhythmicity will also be available as the list component rhythm.joint.
 #' @export
@@ -46,8 +45,8 @@ DCP_Rhythmicity = function(x1, x2=NULL, method = "Sidak_FS", period = 24, amp.cu
     action1 = apply(pM, 1, which.min)
     action2 = ifelse(action1==1, 2, 1)
     action = data.frame(action1, action2)
-    pv = data.frame(pS1 = sapply(1:length(action1), function(i){pM[i, action1[i]]}),
-                    pS2 = sapply(1:length(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
+    pv = data.frame(pS1 = sapply(seq_along(action1), function(i){pM[i, action1[i]]}),
+                    pS2 = sapply(seq_along(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
 
     x = list(x1 = x1, x2 = x2,
              gname_overlap = gname.overlap,
@@ -95,11 +94,11 @@ CP_OneGroup = function(x1, period = 24, alpha = 0.05, CI = FALSE, p.adjust.metho
 
   if(CI){
     # fit@.Data[[7]] is variance
-    CI.m.hat.radius = sapply(1:length(fit$sigma), function(i){
+    CI.m.hat.radius = sapply(seq_along(fit$sigma), function(i){
       calculate_CI.M(fit@.Data[[7]], A.t = matrix(c(1, 0, 0), nrow = 1),
                      r.full = 3, ncol(data), alpha, fit$sigma[i])
     })
-    se.hat.A.phase = t(sapply(1:length(fit$sigma), function(i){
+    se.hat.A.phase = t(sapply(seq_along(fit$sigma), function(i){
       calculate_CI_A.phase.Taylor(fit@.Data[[7]],
                                   A.t = rbind(c(0, 1, 0),
                                               c(0, 0, 1)),
@@ -185,8 +184,8 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
     action1 = apply(pM, 1, which.min)
     action2 = ifelse(action1==1, 2, 1)
     action = data.frame(action1, action2)
-    pv = data.frame(pS1 = sapply(1:length(action1), function(i){pM[i, action1[i]]}),
-                    pS2 = sapply(1:length(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
+    pv = data.frame(pS1 = sapply(seq_along(action1), function(i){pM[i, action1[i]]}),
+                    pS2 = sapply(seq_along(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
 
   }else{
     gname.overlap = x$rhythm.joint$gname
@@ -194,8 +193,8 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
     action1 = x$rhythm.joint$action1
     action2 = x$rhythm.joint$action2
     action = data.frame(action1, action2)
-    pv = data.frame(pS1 = sapply(1:length(action1), function(i){pM[i, action1[i]]}),
-                    pS2 = sapply(1:length(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
+    pv = data.frame(pS1 = sapply(seq_along(action1), function(i){pM[i, action1[i]]}),
+                    pS2 = sapply(seq_along(action2), function(i){pM[i, action2[i]]}))#pS1 is p-value for step 1;
   }
 
   if(adjustP){
@@ -203,14 +202,14 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
     qM = data.frame(p1 = stats::p.adjust(pM$pG1, p.adjust.method), p2 = stats::p.adjust(pM$pG2, p.adjust.method)) #q.value from each group
     q.action1 = apply(qM, 1, which.min)
     q.action2 = ifelse(q.action1==1, 2, 1)
-    qv = data.frame(qS1 = sapply(1:length(q.action1), function(i){qM[i, q.action1[i]]}),
-                    qS2 = sapply(1:length(q.action2), function(i){qM[i, q.action2[i]]}))
+    qv = data.frame(qS1 = sapply(seq_along(q.action1), function(i){qM[i, q.action1[i]]}),
+                    qS2 = sapply(seq_along(q.action2), function(i){qM[i, q.action2[i]]}))
     q.action = data.frame(q.action1, q.action2)
-    TOJR_adj = unlist(parallel::mclapply(1:nrow(q.action), function(i){
+    TOJR_adj = unlist(parallel::mclapply(seq_len(nrow(q.action)), function(i){
       SeqModelSel(q.action[i, ], qv[i, ], alpha, method)
     }, mc.cores = parallel.ncores))
   }else{
-    TOJR_adj = unlist(parallel::mclapply(1:nrow(action), function(i){
+    TOJR_adj = unlist(parallel::mclapply(seq_len(nrow(action)), function(i){
       # SeqModelSel(action[i, ], pv[i, ], alpha, method)
       SeqModelSel(action[i, ], pv[i, ], alpha, method)
     }, mc.cores = parallel.ncores))
@@ -233,7 +232,7 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
 
     TOJR.to.change = TOJR_adj[match(amp0.genes.not.arrhy, gname.overlap)]
     if(length(amp0.status)>0){
-      TOJR_adj[match(amp0.genes.not.arrhy, gname.overlap)] = sapply(1:length(amp0.status), function(a){
+      TOJR_adj[match(amp0.genes.not.arrhy, gname.overlap)] = sapply(seq_along(amp0.status), function(a){
         amp.cut(amp0.status[[a]], TOJR.to.change[a])
       })
     }
@@ -244,7 +243,9 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
 }
 
 # Functions for CI --------------------------------------------------------
-get_phase = function(b1.x = beta1.hat, b2.x = beta2.hat){
+get_phase = function(b1.x, # = beta1.hat,
+                     b2.x # = beta2.hat
+                     ){
   ph.x = atan(-b2.x/b1.x)
   #adjust ph.x
   if(b2.x>0){
@@ -264,17 +265,20 @@ get_phase = function(b1.x = beta1.hat, b2.x = beta2.hat){
               tan = -b2.x/b1.x))
 }
 
-calculate_CI.M = function(XX.inv = mat.S.inv, A.t = matrix(c(1, 0, 0, 1, 0, 0), nrow = 1),
-                          r.full = 6, n = length(tod), alpha = 0.05, sigma.hat = sigma.hat){
+calculate_CI.M = function(XX.inv, # = mat.S.inv,
+                          A.t, # = matrix(c(1, 0, 0, 1, 0, 0), nrow = 1),
+                          r.full = 6, n, alpha = 0.05, sigma.hat
+                          ){
   CI.m.hat.radius = stats::qt(1-alpha/2, n-r.full)*sigma.hat*sqrt(A.t%*%XX.inv%*%t(A.t))
   return(CI.m.hat.radius)
 }
 
-calculate_CI_A.phase.Taylor = function(XX.inv = mat.S.inv,
-                                       A.t = rbind(c(0, 0, 1, 0, 0, 0),
-                                                   c(0, 0, 0, 1, 0, 0)),
-                                       phase.hat = phase1.hat, A.hat = A1.hat,
-                                       sigma.hat = sigma.hat){
+calculate_CI_A.phase.Taylor = function(XX.inv, # = mat.S.inv,
+                                       A.t, # = rbind(c(0, 0, 1, 0, 0, 0),
+                                              #     c(0, 0, 0, 1, 0, 0)),
+                                       phase.hat, # = phase1.hat,
+                                       A.hat, # = A1.hat,
+                                       sigma.hat){
   #notice that this has been changed from the one_consinor_OLS
   var.new = A.t%*%XX.inv%*%t(A.t)
   var.beta1 = var.new[1, 1]; var.beta2 = var.new[2, 2]; var.beta1.beta2 = var.new[1, 2]
@@ -289,10 +293,11 @@ calculate_CI_A.phase.Taylor = function(XX.inv = mat.S.inv,
 
 }
 
-calculate_CI_A.phase.Scheffe = function(XX.inv = mat.S.inv, A.t = rbind(c(0, 1, 0, 0, 1, 0),
-                                                                        c(0, 0, 1, 0, 0, 1)),
-                                        sigma2.hat = sigma2.hat,
-                                        est = est,r.full = 6, n = length(tod), alpha, CItype = "conservative"){
+calculate_CI_A.phase.Scheffe = function(XX.inv, # = mat.S.inv,
+                                        A.t, # = rbind(c(0, 1, 0, 0, 1, 0),
+                                             #        c(0, 0, 1, 0, 0, 1)),
+                                        sigma2.hat,
+                                        est,r.full=6, n, alpha, CItype = "conservative"){
   #CItype = "conservative" or "PlugIn"
   # XX.inv = mat.S.inv;
   # A.t = rbind(c(0, 1, 0),
@@ -503,9 +508,13 @@ calculate_CI_A.phase.Scheffe = function(XX.inv = mat.S.inv, A.t = rbind(c(0, 1, 
               CI_A = c(A.limit1, A.limit2)))
 
 }
-get_phaseForCI = function(b1.x = beta1.hat, b2.x = beta2.hat,
-                          b1.r1 = phi.beta1.roots[1], b2.r1 = phi.beta2.roots[1],
-                          b1.r2 = phi.beta1.roots[2], b2.r2 = phi.beta2.roots[2]){
+get_phaseForCI = function(b1.x, # = beta1.hat,
+                          b2.x, # = beta2.hat,
+                          b1.r1, # = phi.beta1.roots[1],
+                          b2.r1, # = phi.beta2.roots[1],
+                          b1.r2, # = phi.beta1.roots[2],
+                          b2.r2 # = phi.beta2.roots[2]
+                          ){
   # b1.x = beta1.hat; b2.x = beta2.hat;
   # b1.r1 = phi.beta1.roots[1]; b2.r1 = phi.beta2.roots[1];
   # b1.r2 = phi.beta1.roots[2]; b2.r2 = phi.beta2.roots[2]
@@ -567,7 +576,9 @@ get_phaseForCI = function(b1.x = beta1.hat, b2.x = beta2.hat,
 }
 
 #make a table of the quadrants
-get_quad = function(b1.q = b1.x, b2.q = b2.x){
+get_quad = function(b1.q, # = b1.x,
+                    b2.q # = b2.x
+                    ){
   quad.table = as.data.frame(
     list(beta1.gt.0 = c(TRUE, TRUE, FALSE, FALSE),
          beta2.gt.0 = c(TRUE, FALSE, TRUE, FALSE),
@@ -580,8 +591,12 @@ get_quad = function(b1.q = b1.x, b2.q = b2.x){
 
 # s1.quad = quad.s1; s2.quad = quad.s2; s1s2 = s2.type;
 # b1.s2.q = b1.s2; b2.s2.q = b2.s2
-get_phaseForCI_QuadTab = function(s1.quad = quad.s1, s2.quad = quad.s2, s1s2 = s2.type,
-                                  b1.s2.q = b1.s2, b2.s2.q = b2.s2){
+get_phaseForCI_QuadTab = function(s1.quad, # = quad.s1,
+                                  s2.quad, # = quad.s2,
+                                  s1s2, # = s2.type,
+                                  b1.s2.q, # = b1.s2,
+                                  b2.s2.q # = b2.s2
+                                  ){
   # s1.quad = quad.s1; s2.quad = quad.s2; s1s2 = s2.type;
   # b1.s2.q = b1.s2; b2.s2.q = b2.s2
   quad.table2 = as.data.frame(
@@ -618,8 +633,11 @@ get_phaseForCI_QuadTab = function(s1.quad = quad.s1, s2.quad = quad.s2, s1s2 = s
 }
 
 get_phaseForCI_QuadTab2 = function(x.quad, r1.quad, r2.quad,
-                                   b1.t1 = b1.r1, b2.t1 = b2.r1,
-                                   b1.t2 = b1.r2, b2.t2 = b2.r2){
+                                   b1.t1, # = b1.r1,
+                                   b2.t1, # = b2.r1,
+                                   b1.t2, # = b1.r2,
+                                   b2.t2 # = b2.r2
+                                   ){
   #t1 stands for three-quadrants, solution 1
   #This function is for when the ellipse covers three quadrants
   quad.table3 = as.data.frame(
@@ -682,7 +700,7 @@ get_phaseForCI_QuadTab2 = function(x.quad, r1.quad, r2.quad,
               phi.upper.limit = phi.upper.limit))
 }
 
-solve.ellipse.parameters = function(a = a, b = b, c = c, d = d, e = e, f = f){
+solve.ellipse.parameters = function(a, b, c, d, e, f){
   #a * x ^ 2 + b * y ^ 2 + c * x * y + d * x + e * y + f = 0
   delta1 = c^2 -4*a*b
   if(delta1>=0){
@@ -716,9 +734,10 @@ solve.ellipse.parameters = function(a = a, b = b, c = c, d = d, e = e, f = f){
   }
 }
 
-get.angle_point.newOrigin.major = function(x0 = ellipse.parameters$x0,
-                                           y0 = ellipse.parameters$y0,
-                                           theta.rotate = ellipse.parameters$theta.rotate){
+get.angle_point.newOrigin.major = function(x0, # = ellipse.parameters$x0,
+                                           y0, # = ellipse.parameters$y0,
+                                           theta.rotate # = ellipse.parameters$theta.rotate
+                                           ){
   #if both x0=0 and y0=0, then the distance is already there:
   #min distance = b; max distance = a
   if(x0==0&y0==0){
@@ -842,7 +861,7 @@ StopRule = function(action, pv, alpha, method){
       a.stop = max(0, min(which(pv>alpha))-1)
     }
   }
-  sel = action[1:a.stop]
+  sel = action[seq_along(a.stop)]
   if(a.stop==0){
     a.type = "arrhy"
   }else if(length(sel)==1){
@@ -862,9 +881,9 @@ forwardStop = function (pv, alpha = 0.1)
 {
   if (alpha < 0 || alpha > 1)
     stop("alpha must be in [0,1]")
-  if (min(pv, na.rm = T) < 0 || max(pv, na.rm = T) > 1)
+  if (min(pv, na.rm = TRUE) < 0 || max(pv, na.rm = TRUE) > 1)
     stop("pvalues must be in [0,1]")
-  val = -(1/(1:length(pv))) * cumsum(log(1 - pv))
+  val = -(1/(seq_along(pv))) * cumsum(log(1 - pv))
   oo = which(val <= alpha)
   if (length(oo) == 0)
     out = 0

@@ -19,13 +19,14 @@
 #' test = c(rep("DRF", 2), "DRF"),
 #' type = c(rep("p-value", 2), "q-value"),
 #' val = c(0.1, 0.05, 0.4), "long")
-SummarizeDR = function(result = DCP_dR2$p.R2, test = "DRF", type = "p-value", val = 0.05, out = "long"){
-  if(class(result)!="list"){
+SummarizeDR = function(result, # = DCP_dR2$p.R2,
+                       test = "DRF", type = "p-value", val = 0.05, out = "long"){
+  if(!is.list(result)){
     result = list(result)
   }
   l = length(result)
   stopifnot("Arguments `result`, `test`, `type`, `val` must have the same length" = (length(test)==l&length(type)==l&length(val)==l))
-  tab = lapply(1:l, function(a){
+  tab = lapply(seq_len(l), function(a){
     a.result = result[[a]]
     a.test = test[a]
     a.type = type[a]
@@ -42,7 +43,7 @@ SummarizeDR = function(result = DCP_dR2$p.R2, test = "DRF", type = "p-value", va
   if(out=="long"){
     return(tab[, c(1, 3,4)])
   }else if(out =="wide"){
-    tab.list = lapply(1:nrow(tab[, c(1, 3,4)]), function(i){
+    tab.list = lapply(seq_len(nrow(tab[, c(1, 3,4)])), function(i){
       a.cell = data.frame(x = c(tab[i, "nTRUE"]))
       rownames(a.cell) = NULL
       colnames(a.cell) = paste0(tab[i, "test"], " ", tab[i, "cutoff"])

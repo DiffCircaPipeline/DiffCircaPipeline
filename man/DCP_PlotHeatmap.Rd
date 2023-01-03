@@ -39,6 +39,9 @@ DCP_PlotHeatmap(
 
 \item{file.height}{width of the export plot}
 }
+\value{
+a ggplot2 object
+}
 \description{
 Heatmaps of Rhythmicity Signals
 }

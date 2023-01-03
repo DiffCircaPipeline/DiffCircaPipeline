@@ -42,7 +42,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
   stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
   period = x$x1$P
 
-  x.list = lapply(1:length(overlap.g), function(a){
+  x.list = lapply(seq_along(overlap.g), function(a){
     list(x1.time = t1,
          x2.time = t2,
          y1 = as.numeric(x1.overlap[a, ]),
@@ -50,7 +50,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
   })
 
   if(method == "LR"){
-    res.list = parallel::mclapply(1:length(x.list), function(a){
+    res.list = parallel::mclapply(seq_along(x.list), function(a){
       one.res = LR_deltaR2(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                            x.list[[a]]$x2.time, x.list[[a]]$y2, period,
                                            FN = TRUE)
@@ -61,7 +61,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
     diffR2.tab = do.call(rbind.data.frame, res.list)
   }else if(method == "LR_sigma2"){
 
-    res.list = parallel::mclapply(1:length(x.list), function(a){
+    res.list = parallel::mclapply(seq_along(x.list), function(a){
       one.res = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                        x.list[[a]]$x2.time, x.list[[a]]$y2, period,
                                        FN = TRUE, type = "fit")
@@ -77,7 +77,8 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
     if(!is.null(Sampling.save)){
       if(!dir.exists(Sampling.save)){
         dir.create(file.path(Sampling.save), recursive = TRUE)
-        message(paste0("Directory created. Permutation results will be saved in ", Sampling.save))
+        a.message = paste0("Directory created. Permutation results will be saved in ", Sampling.save)
+        message(a.message)
       }
     }
     res.tab = diff_rhythmicity_permutation(x1.overlap,x2.overlap,t1,t2,overlap.g, period, x1.rhythm, x2.rhythm, nSampling,
@@ -87,7 +88,8 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
     if(!is.null(Sampling.save)){
       if(!dir.exists(Sampling.save)){
         dir.create(file.path(Sampling.save), recursive = TRUE)
-        message(paste0("Directory created. Bootstrap results will be saved in ", Sampling.save))
+        a.message = paste0("Directory created. Bootstrap results will be saved in ", Sampling.save)
+        message(a.message)
       }
     }
     res.tab = diff_rhythmicity_bootstrap(x1.overlap,x2.overlap,t1,t2,overlap.g, period, x1.rhythm, x2.rhythm, nSampling,
@@ -310,13 +312,13 @@ LR_deltaR2 <- function(tt1, yy1, tt2, yy2, period = 24, FN=TRUE){
 
   dfdiff <- 1
   if(!FN){
-    pvalue <- pchisq(LR_stat,dfdiff,lower.tail = F)
+    pvalue <- stats::pchisq(LR_stat,dfdiff,lower.tail = FALSE)
   } else if(FN){
     r <- 1
     k <- 6
     n <- n1+n2
     Fstat <- (exp(LR_stat/n) - 1) * (n-k) / r
-    pvalue <- pf(Fstat,df1 = r, df2 = n-k, lower.tail = F)
+    pvalue <- stats::pf(Fstat,df1 = r, df2 = n-k, lower.tail = FALSE)
   } else{
     stop("FN has to be TRUE or FALSE")
   }
@@ -386,7 +388,7 @@ fitSinCurve <- function(tt, yy, period = 24, parStart = list(amp=3,phase=0, offs
   tss <- sum((yy - mean(yy))^2)
   R2 <- 1 - rss/tss
 
-  if(F){
+  if(FALSE){
     amp <- apar$amp
     phase <- apar$phase
     offset <- apar$offset
@@ -405,8 +407,8 @@ diff_rhythmicity_permutation = function(x1.overlap,x2.overlap,t1,t2,gname, perio
   indexes = seq_len(length(t.all))
   n1 = length(t1)
 
-  perm.list = parallel::mclapply(1:nPermutation, function(b){
-    set.seed(b)
+  perm.list = parallel::mclapply(seq_along(nPermutation), function(b){
+    # set.seed(b)
     index1 = sample(indexes, n1)
     index2 = setdiff(indexes, index1)
     x1.b = list(data = x12.overlap[, index1],
@@ -458,19 +460,19 @@ diff_rhythmicity_permutation = function(x1.overlap,x2.overlap,t1,t2,gname, perio
   #ap_R2_perGene <- apply(R2_null - R2_obs,1,function(x) min(mean(x >= 0), mean(x <= 0)) * 2)
 
   ## permutation p-value by pooling all genes together
-  ap_M_allGene0 <- rank(cbind(M_obs, M_null))[1:length(gname)]/(length(gname)*(nPermutation+ 1))
+  ap_M_allGene0 <- rank(cbind(M_obs, M_null))[seq_along(gname)]/(length(gname)*(nPermutation+ 1))
   ap_M_allGene <- pmin(ap_M_allGene0, 1 - ap_M_allGene0) * 2
 
-  ap_A_allGene0 <- rank(cbind(A_obs, A_null))[1:length(gname)]/(length(gname)*(nPermutation+ 1))
+  ap_A_allGene0 <- rank(cbind(A_obs, A_null))[seq_along(gname)]/(length(gname)*(nPermutation+ 1))
   ap_A_allGene <- pmin(ap_A_allGene0, 1 - ap_A_allGene0) * 2
 
-  ap_phase_allGene0 <- rank(cbind(phase_obs, phase_null))[1:length(gname)]/(length(gname)*(nPermutation+ 1))
+  ap_phase_allGene0 <- rank(cbind(phase_obs, phase_null))[seq_along(gname)]/(length(gname)*(nPermutation+ 1))
   ap_phase_allGene <- pmin(ap_phase_allGene0, 1 - ap_phase_allGene0) * 2
 
-  ap_peak_allGene0 <- rank(cbind(peak_obs, peak_null))[1:length(gname)]/(length(gname)*(nPermutation+ 1))
+  ap_peak_allGene0 <- rank(cbind(peak_obs, peak_null))[seq_along(gname)]/(length(gname)*(nPermutation+ 1))
   ap_peak_allGene <- pmin(ap_peak_allGene0, 1 - ap_peak_allGene0) * 2
 
-  ap_R2_allGene0 <- rank(cbind(R2_obs, R2_null))[1:length(gname)]/(length(gname)*(nPermutation+ 1))
+  ap_R2_allGene0 <- rank(cbind(R2_obs, R2_null))[seq_along(gname)]/(length(gname)*(nPermutation+ 1))
   ap_R2_allGene <- pmin(ap_R2_allGene0, 1 - ap_R2_allGene0) * 2
 
   out = data.frame(gname = gname,
@@ -496,8 +498,8 @@ diff_rhythmicity_bootstrap = function(x1.overlap,x2.overlap,t1,t2,gname, period,
   index1.0 = seq_len(length(t1))
   index2.0 = seq_len(length(t2))
 
-  boot.list = parallel::mclapply(1:nSampling, function(b){
-    set.seed(b)
+  boot.list = parallel::mclapply(seq_along(nSampling), function(b){
+    # set.seed(b)
     index1 = sample(index1.0, replace = TRUE)
     index2 = sample(index2.0, replace = TRUE)
     x1.b = list(data = x1.overlap[, index1],

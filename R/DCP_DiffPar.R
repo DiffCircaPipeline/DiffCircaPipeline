@@ -2,11 +2,12 @@
 #'
 #' This function performs differential rhythmicity parameter tests.
 #' @param x outpuf of DCP_Rhythmicity(x1, x2)
-#' @param Par charater string. One of "A", "phase", "M", "A&phase", or "A&phase&M"
+#' @param Par One of "A", "phase", "M", "A&phase", or "A&phase&M"
 #' @param TOJR toTOJR output. If NULL, rhythm.joint object in x will be used.
 #' @param alpha cutoff of p-values for significant differential parameter shift.
 #' @param p.adjust.method input for p.adjust() in R package \code{stat}
-#' @param parallel.ncores integer. Number of cores used if using parallel computing with \code{mclapply()}. Not functional for windows system.
+#' @param parallel.ncores integer. Number of cores used if using parallel
+#' computing with \code{mclapply()}. Not functional for windows system.
 #'
 #' @return A dataframe of differential rhythm parameter test results.
 #' @export
@@ -17,15 +18,19 @@
 #' M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
 #' rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
 #' rhythm.diffPar = DCP_DiffPar(rhythm.res, Par = "A&phase")
-DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method = "BH", parallel.ncores = 1){
-
-  stopifnot('Par should be one of "A", "phase", "M", "A&phase", or "A&phase&M". ' = Par %in% c("A", "phase", "M", "A&phase", "A&phase&M"))
-  stopifnot("x should be output of DCP_Rhythmicity() with both x1 and x2 not NULL" = all(c("x1", "x2", "gname_overlap", "rhythm.joint")%in%names(x)))
+DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05,
+                       p.adjust.method = "BH", parallel.ncores = 1){
+  stopifnot('Par should be one of "A", "phase", "M", "A&phase", or "A&phase&M".'
+            = Par %in% c("A", "phase", "M", "A&phase", "A&phase&M"))
+  stopifnot(
+    "x should be output of DCP_Rhythmicity() with both x1 and x2 not NULL" =
+      all(c("x1", "x2", "gname_overlap", "rhythm.joint")%in%names(x)))
 
   if(is.null(TOJR)){
     overlap.g = x$rhythm.joint$gname[x$rhythm.joint$TOJR == "both"]
   }else{
-    stopifnot('The input number of types of joint rhythmicity does not match that of overlapping genes in two groups ' =
+    stopifnot('The input number of types of joint rhythmicity does not
+              match that of overlapping genes in two groups ' =
                 length(x$rhythm.joint$gname)==length(TOJR)
     )
     overlap.g = x$gname_overlap[TOJR == "both"]
@@ -42,7 +47,7 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method
   stopifnot("x$x1$P is not equal to x$x2$P. " = x$x1$P==x$x2$P)
   period = x$x1$P
 
-  x.list = lapply(1:length(overlap.g), function(a){
+  x.list = lapply(seq_along(overlap.g), function(a){
     list(x1.time = t1,
          x2.time = t2,
          y1 = as.numeric(x1.overlap[a, ]),
@@ -52,12 +57,18 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method
   if(Par == "A"|Par == "phase"|Par == "M"){
     Par2 = switch(Par, "A" = "amplitude", "phase" = "phase", "M" = "basal")
 
-    test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-      out.diffPar = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type=Par2)
+    test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
+      out.diffPar = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+                                           x.list[[a]]$x2.time, x.list[[a]]$y2,
+                                           period , FN = TRUE, type=Par2)
       one.row = data.frame(gname = overlap.g[a],
-                           Par1 = ifelse(Par2=="phase", x1.rhythm[, "peak"][a], x1.rhythm[, Par][a]),
-                           Par2 = ifelse(Par2=="phase", x2.rhythm[, "peak"][a], x2.rhythm[, Par][a]),
-                           delta.Par = ifelse(Par2=="phase", x2.rhythm[, "peak"][a]-x1.rhythm[, "peak"][a], x2.rhythm[, Par][a]-x1.rhythm[, Par][a]),
+                           Par1 = ifelse(Par2=="phase", x1.rhythm[, "peak"][a],
+                                         x1.rhythm[, Par][a]),
+                           Par2 = ifelse(Par2=="phase", x2.rhythm[, "peak"][a],
+                                         x2.rhythm[, Par][a]),
+                           delta.Par = ifelse(Par2=="phase",
+                                              x2.rhythm[, "peak"][a]-x1.rhythm[, "peak"][a],
+                                              x2.rhythm[, Par][a]-x1.rhythm[, Par][a]),
                            pvalue = out.diffPar$pvalue
       )
       #notice that the peak estimate from diffCircadian and DCP_Rhythmicity is peak_dfCircadain + peak_CP = 30
@@ -78,15 +89,22 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method
       M1 = 1,
       g2 = group.2,
       inphase = cos(2*pi/period*time), outphase = sin(2*pi/period*time),
-      g2.inphase = group.2*cos(2*pi/period*time), g2.outphase = group.2*sin(2*pi/period*time))
-    fit.full = limma::lmFit(data, stats::model.matrix(~g2+inphase+outphase+g2.inphase+g2.outphase, data = design.full))
+      g2.inphase = group.2*cos(2*pi/period*time),
+      g2.outphase = group.2*sin(2*pi/period*time))
+    fit.full = limma::lmFit(data,
+                            stats::model.matrix(~g2+inphase+outphase+g2.inphase+g2.outphase,
+                                                data = design.full))
     fit.full = limma::eBayes(fit.full)
 
     if(Par == "A&phase"){
       diff.top = limma::topTable(fit.full, coef = 5:6, n = nrow(data), sort.by = "none")
-      test_diffPar = parallel::mclapply(1:length(x.list), function(a){
-        out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="amplitude")
-        out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
+      test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
+        out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+                                           x.list[[a]]$x2.time, x.list[[a]]$y2,
+                                           period , FN = TRUE, type="amplitude")
+        out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+                                              x.list[[a]]$x2.time, x.list[[a]]$y2,
+                                              period , FN = TRUE, type="phase")
         one.row = data.frame(
           A1 = x1.rhythm$A[a],
           A2 = x2.rhythm$A[a],
@@ -100,7 +118,8 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method
         return(one.row)
       }, mc.cores = parallel.ncores)
       diffPar.tab = do.call(rbind.data.frame, test_diffPar)
-      all.tab = data.frame(gname = overlap.g, diff.top[, c("P.Value", "adj.P.Val")], diffPar.tab)
+      all.tab = data.frame(gname = overlap.g,
+                           diff.top[, c("P.Value", "adj.P.Val")], diffPar.tab)
       colnames(all.tab)[2:3] = c("p.overall", "q.overall")
       all.tab$q.delta.A = stats::p.adjust(all.tab$p.delta.A, p.adjust.method)
       all.tab$q.delta.phase = stats::p.adjust(all.tab$p.delta.phase, p.adjust.method)
@@ -112,7 +131,7 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05, p.adjust.method
                                 "A1", "A2", "delta.A", "p.delta.A", "q.delta.A", "phase1", "phase2", "delta.phase", "p.delta.phase", "q.delta.phase")]
     }else if(Par == "A&phase&M"){
       diff.top = limma::topTable(fit.full, coef = c(2, 5:6), n = nrow(data), sort.by = "none")
-      test_diffPar = parallel::mclapply(1:length(x.list), function(a){
+      test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
         out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="amplitude")
         out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
         out.diffM= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="basal")

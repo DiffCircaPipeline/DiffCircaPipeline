@@ -29,10 +29,10 @@ DCP_sim_data = function(ngene=1000, nsample=30, A1=c(1, 3), A2=c(1, 3), phase1=c
   x2.time = stats::runif(nsample, min = 0, max = 24)
 
   noise.mat1 = matrix(stats::rnorm(ngene*nsample, 0, a.sigma1), ncol = nsample, nrow = ngene)
-  signal.mat1 = t(sapply(1:ngene, function(a){a.m1[a]+a.A1[a]*cos(2*pi/24*x1.time+a.phase1[a])}))
+  signal.mat1 = t(sapply(seq_len(ngene), function(a){a.m1[a]+a.A1[a]*cos(2*pi/24*x1.time+a.phase1[a])}))
 
   noise.mat2 = matrix(stats::rnorm(ngene*nsample, 0, a.sigma2), ncol = nsample, nrow = ngene)
-  signal.mat2 = t(sapply(1:ngene, function(a){a.m2[a]+a.A2[a]*cos(2*pi/24*x2.time+a.phase2[a])}))
+  signal.mat2 = t(sapply(seq_len(ngene), function(a){a.m2[a]+a.A2[a]*cos(2*pi/24*x2.time+a.phase2[a])}))
 
   x1.data = as.data.frame(noise.mat1 + signal.mat1)
   x2.data = as.data.frame(noise.mat2 + signal.mat2)

@@ -73,7 +73,7 @@ DCP_PlotPeakDiff(
 \item{color.diff.baseline}{color of the reference line for \eqn{\Delta}peak = 0.}
 }
 \value{
-
+a ggplot2 object
 }
 \description{
 Circos plot of peak time shift

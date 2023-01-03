@@ -15,6 +15,9 @@ DCP_PlotDisplay(
 
 \item{id}{integer. Indexes for plots to display.}
 }
+\value{
+a ggplot2 object
+}
 \description{
 Displaying DCP_ScatterPlot outputs
 }

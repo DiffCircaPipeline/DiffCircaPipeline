@@ -55,7 +55,7 @@ DCP_PlotPeakRadar(
 \item{legend.position}{One of "left”, "top", "right", "bottom", or "none"}
 }
 \value{
-
+a ggplot2 object
 }
 \description{
 Radar plot of peak time

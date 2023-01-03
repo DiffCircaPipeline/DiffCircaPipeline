@@ -1,13 +1,13 @@
 Package: DiffCircaPipeline
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: GPL (>= 3)
+Version: 0.99.0
+Title: An R package for DiffCircaPipeline: A framework for multifaceted characterization of differential rhythmicity
+Description: The package facilitates a comprehensive and interactive pipeline to capture the multifaceted characteristics of differentially rhythmic biomarkers. It implements rhythmicity detection, differential rhythm parameter test, and differential rhythmicity fitness test. Intensive visualization tools are also provided to help exploration of the data. 
+Authors@R: Xiangning Xue [cre,aut] <xiangning.xue@outlook.com>
+biocViews: Software, GeneExpression, StatisticalMethod, TimeCourse
+VignetteBuilder: knitr
+License: GPL-3
 Encoding: UTF-8
-LazyData: true
+LazyData: false
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: 
@@ -31,3 +31,4 @@ Imports:
     ComplexHeatmap,
     circlize, 
     lubridate
+Suggests: knitr
