@@ -16,7 +16,7 @@ DCP_DiffPar(
 \arguments{
 \item{x}{outpuf of DCP_Rhythmicity(x1, x2)}
 
-\item{Par}{charater string. One of "A", "phase", "M", "A&phase", or "A&phase&M"}
+\item{Par}{One of "A", "phase", "M", "A&phase", or "A&phase&M"}
 
 \item{TOJR}{toTOJR output. If NULL, rhythm.joint object in x will be used.}
 
@@ -24,7 +24,8 @@ DCP_DiffPar(
 
 \item{p.adjust.method}{input for p.adjust() in R package \code{stat}}
 
-\item{parallel.ncores}{integer. Number of cores used if using parallel computing with \code{mclapply()}. Not functional for windows system.}
+\item{parallel.ncores}{integer. Number of cores used if using parallel
+computing with \code{mclapply()}. Not functional for windows system.}
 }
 \value{
 A dataframe of differential rhythm parameter test results.

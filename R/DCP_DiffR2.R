@@ -62,7 +62,7 @@ DCP_DiffR2 = function(x, method = "LR", TOJR = NULL,  alpha = 0.05,  nSampling=1
   }else if(method == "LR_sigma2"){
 
     res.list = parallel::mclapply(seq_along(x.list), function(a){
-      one.res = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+      one.res = LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                        x.list[[a]]$x2.time, x.list[[a]]$y2, period,
                                        FN = TRUE, type = "fit")
       # one.res.tab = data.frame(gname = overlap.g[a], R2.1 = x1.rhythm$R2[a], R2.2 = x2.rhythm$R2[a],

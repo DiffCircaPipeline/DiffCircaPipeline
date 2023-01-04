@@ -4,11 +4,7 @@
 \alias{DCP_PlotDisplay}
 \title{Displaying DCP_ScatterPlot outputs}
 \usage{
-DCP_PlotDisplay(
-  x = DCP_ScatterPlot(x, genes.plot = NULL, Info1 = "gI", Info2 = "gII", filename =
-    NULL, height = 8, width = 8),
-  id = NULL
-)
+DCP_PlotDisplay(x, id = NULL)
 }
 \arguments{
 \item{x}{DCP_ScatterPlot output}
@@ -16,8 +12,19 @@ DCP_PlotDisplay(
 \item{id}{integer. Indexes for plots to display.}
 }
 \value{
-a ggplot2 object
+Plots returned
 }
 \description{
 Displaying DCP_ScatterPlot outputs
+}
+\examples{
+x = DCP_sim_data(ngene=1000, nsample=30, A1=c(1, 3), A2=c(1, 3),
+phase1=c(0, pi/4), phase2=c(pi/4, pi/2),
+M1=c(4, 6), M2=c(4, 6), sigma1=1, sigma2=1)
+
+rhythm.res = DCP_Rhythmicity(x1 = x[[1]], x2 = x[[2]])
+rhythm.plots = DCP_ScatterPlot(rhythm.res)
+#to display plot in Rstudio use DCP_PlotDisplay()
+#display the first five plots
+DCP_PlotDisplay(rhythm.plots, id = 1:5)
 }

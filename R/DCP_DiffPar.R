@@ -28,6 +28,7 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05,
 
   if(is.null(TOJR)){
     overlap.g = x$rhythm.joint$gname[x$rhythm.joint$TOJR == "both"]
+    stopifnot('There is no RhyBoth genes, please use a lower threshold for TOJR. ' = length(overlap.g)>0)
   }else{
     stopifnot('The input number of types of joint rhythmicity does not
               match that of overlapping genes in two groups ' =
@@ -58,7 +59,7 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05,
     Par2 = switch(Par, "A" = "amplitude", "phase" = "phase", "M" = "basal")
 
     test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
-      out.diffPar = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+      out.diffPar = LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                            x.list[[a]]$x2.time, x.list[[a]]$y2,
                                            period , FN = TRUE, type=Par2)
       one.row = data.frame(gname = overlap.g[a],
@@ -99,10 +100,10 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05,
     if(Par == "A&phase"){
       diff.top = limma::topTable(fit.full, coef = 5:6, n = nrow(data), sort.by = "none")
       test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
-        out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+        out.diffA = LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                            x.list[[a]]$x2.time, x.list[[a]]$y2,
                                            period , FN = TRUE, type="amplitude")
-        out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
+        out.diffphase= LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1,
                                               x.list[[a]]$x2.time, x.list[[a]]$y2,
                                               period , FN = TRUE, type="phase")
         one.row = data.frame(
@@ -132,9 +133,9 @@ DCP_DiffPar = function(x, Par = c("A"), TOJR=NULL, alpha = 0.05,
     }else if(Par == "A&phase&M"){
       diff.top = limma::topTable(fit.full, coef = c(2, 5:6), n = nrow(data), sort.by = "none")
       test_diffPar = parallel::mclapply(seq_along(x.list), function(a){
-        out.diffA = diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="amplitude")
-        out.diffphase= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
-        out.diffM= diffCircadian::LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="basal")
+        out.diffA = LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="amplitude")
+        out.diffphase= LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="phase")
+        out.diffM= LR_diff(x.list[[a]]$x1.time, x.list[[a]]$y1, x.list[[a]]$x2.time, x.list[[a]]$y2, period , FN = TRUE, type="basal")
         one.row = data.frame(
           A1 = x1.rhythm$A[a],
           A2 = x2.rhythm$A[a],

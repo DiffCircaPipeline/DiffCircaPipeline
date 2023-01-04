@@ -1,0 +1,249 @@
+---
+title: "DiffCircaPipeline Tutorial"
+author: "Xiangning Xue (Department of Biostatistics, University of Pittsburgh)"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    number_sections: true
+vignette: >
+  %\VignetteIndexEntry{DiffCircaPipeline}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}{inputenc}
+---
+
+
+DiffCircaPipeline is a workflow for a systematic detection of multifaceted differential circadian characteristics ($\Delta A$, $\Delta \phi$, $\Delta M$, $\Delta R^2$) with accurate false positive control. The pipeline allows interactive exploration of the data and the analysis outputs are accompanied by informative visualization. This tutorial demonstrates the pipeline using an public data set from Gene Expression Omnibus (GEO) with the accession number GSE54650. 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+# Prepare data
+
+## Download data from GEO
+
+GSE54650 contains data from 12 tissues. In this tutorial we will be comparing rhythmicity between two tissues: hypothalamus and skeletal muscle. 
+```{r data}
+GSE.ID = "GSE54650"
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+if(!require("GEOquery", quietly = TRUE))
+  BiocManager::install("GEOquery")
+if(!require("Biobase", quietly = TRUE))
+  BiocManager::install("Biobase")
+Sys.setenv(VROOM_CONNECTION_SIZE=131072*5)
+gset <- GEOquery::getGEO(GSE.ID)
+data.pdata = Biobase::pData(gset[[1]])
+data.fdata = Biobase::fData(gset[[1]])
+data.exprs = Biobase::exprs(gset[[1]])
+table(data.pdata$source_name_ch1)
+```
+
+## Preprocessing 
+```{r}
+gI = "hypothalamus"; gII = "skeletal muscle"
+data.pdata.sub = data.pdata %>% filter(source_name_ch1 %in% c(gI, gII))
+data.exprs.sub = data.exprs[, data.pdata.sub$geo_accession]
+
+#check if need log2 transformation
+ex = data.exprs.sub
+qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=TRUE))
+LogC <- (qx[5] > 100) ||
+  (qx[6]-qx[1] > 50 && qx[2] > 0)
+if (LogC) {
+  ex[ex == 0] <- NaN
+  ex <- log2(ex) }
+
+# box-and-whisker plot
+par(mar=c(7,4,2,1))
+title <- paste0(GSE.ID, ": box-and-whisker plot")
+boxplot(ex, boxwex=0.7, notch=TRUE, main=title, outline=FALSE, las=2,)#distribution looks good
+# expression value distribution plot
+par(mar=c(4,4,2,1))
+title <- paste0(GSE.ID, ": density distribution")
+limma::plotDensities(ex, main=title, legend=FALSE)
+```
+
+There is an apparant distribution difference between the two tissues, so we perform quantile normalization to the data. 
+```{r}
+ex.norm = limma::normalizeQuantiles(ex)
+limma::plotDensities(ex.norm, main=title, legend=FALSE)
+```
+
+# DiffCircaPipeline (quick start)
+
+This section performs the differential rhythmicity (DR) tests using *DiffCircaPipeline*. 
+
+## Format the input data
+
+Format the data for DiffCircaPipeline. The data for each group is a list of three components: (1) the expression data, which must be formatted into dataframe; (2) the time, which should have the same order as the columns in the expression, and (3) gname, which is a vector of feature identifier, the order must be the same as the rows in the expression. 
+
+```{r}
+data.pdata.x1 = data.pdata.sub %>% filter(source_name_ch1==gI) %>% mutate(time = as.numeric(gsub(".*_CT([0-9]+)$", "\\1", title)))
+data.pdata.x2 = data.pdata.sub %>% filter(source_name_ch1==gII) %>% mutate(time = as.numeric(gsub(".*_CT([0-9]+)$", "\\1", title)))
+x1 = list(data = as.data.frame(ex.norm[, data.pdata.x1$geo_accession]), 
+          time = data.pdata.x1$time, 
+          gname = rownames(ex.norm))
+x2 = list(data = as.data.frame(ex.norm[, data.pdata.x2$geo_accession]), 
+          time = data.pdata.x2$time, 
+          gname = rownames(ex.norm))
+```
+
+## Rhythm analysis
+
+In this section we run all the analyses using the default arguments, for example, the period is 24 h, the amplitude cutoff for rhythmic gene is 0, etc. Details about changing the arguments can be found in the function documents by "?DCP_Rhythmicity". 
+```{r}
+library(DiffCircaPipeline)
+DCP_rhythm = DCP_Rhythmicity(x1, x2)
+```
+
+Parameter estimates for each group are in "DCP_rhythm\$x1\$rhythm"
+```{r}
+head(DCP_rhythm$x1$rhythm)
+head(DCP_rhythm$x2$rhythm )
+```
+
+Types of rhythmicity for the two groups are in "DCP_rhythm\$rhythm.joint"
+```{r}
+head(DCP_rhythm$rhythm.joint)
+```
+
+Summarize number of genes identified for each TOJR:
+```{r}
+table(DCP_rhythm$rhythm.joint$TOJR)
+```
+
+Summarize number of genes identified for each TOJR after genome-wide FDR correction:
+```{r}
+table(DCP_rhythm$rhythm.joint$TOJR.FDR)
+```
+
+## Compare rhythm fitness 
+
+```{r}
+DCP_dR2 = DCP_DiffR2(DCP_rhythm)
+head(DCP_dR2[order(DCP_dR2$p.R2), ])
+```
+By default, the genes that are rhyI/rhyII/both in "DCP_rhythm\$rhythm.joint\$TOJR" will be used. If users want to use other TOJR results, e.g., "DCP_rhythm\$rhythm.joint\$TOJR.FDR", please refer to next section. 
+
+## Compare rhythm parameters
+
+```{r}
+DCP_dparam = DCP_DiffPar(DCP_rhythm, Par = "A&phase")      
+head(DCP_dparam[order(DCP_dparam$p.overall), 1:7])
+```
+The rest of the columns contains parameter estimates from each group and the p-value for parameter comparision without multiple testing adjustment. 
+
+## Visualization 
+
+### Scatter plots
+
+By default the function plots the genes that are most rhythmic in group I (`r gI`). 
+```{r}
+p.scatter = DCP_ScatterPlot(DCP_rhythm, Info1 = gI, Info2 = gII, filename = NULL) 
+#
+#if given file name the function will automatically save the plots to pdf files in the given directory.
+DCP_PlotDisplay(p.scatter) #DCP_ScatterPlot only stores the plots in a list, DCP_PlotDisplay will display plots side-by-side. 
+```
+
+Plot the top 2 genes with $Delta R^2$
+```{r}
+g.topR2 = DCP_dR2$gname[order(DCP_dR2$p.R2)][1:2]
+p.scatter = DCP_ScatterPlot(DCP_rhythm, g.topR2)
+DCP_PlotDisplay(p.scatter)
+```
+
+Plot the top 2 genes with $Delta A$
+```{r}
+g.top.dA= DCP_dparam$gname[order(DCP_dparam$p.delta.A)][1:2]
+p.scatter = DCP_ScatterPlot(DCP_rhythm, g.top.dA)
+DCP_PlotDisplay(p.scatter)
+```
+
+Plot the top 2 genes with $Delta \phi$. Since both groups are control samples, the phase difference is not large. 
+```{r}
+g.top.dphase= DCP_dparam$gname[order(DCP_dparam$p.delta.peak)][1:2]
+p.scatter = DCP_ScatterPlot(DCP_rhythm, g.top.dphase)
+DCP_PlotDisplay(p.scatter)
+```
+
+## Heatmap
+
+The default is plot the top 100 rhythmic genes in group I. Users are able to plot selected genes by specifying the genes.plot argument. 
+```{r}
+DCP_PlotHeatmap(DCP_rhythm)
+```
+
+## Peak radar plot
+```{r}
+DCP_PlotPeakRadar(DCP_rhythm)
+```
+
+## Peak histogram
+
+The peak histogram is essentially the same as the peak radar plot with only the presentation form changed. 
+
+```{r}
+DCP_PlotPeakHist(DCP_rhythm)
+```
+
+## Peak difference plot
+
+The default peak difference plot:
+```{r}
+DCP_PlotPeakDiff(DCP_rhythm, Info1 = gI, Info2 = gII) 
+```
+
+If users have performed differential rhythm parameter test that contains differential phase, the corresponding result can be displayed. The "dPhase" should be the result from differential rhythm parameter, and "color.cut" specifies the color regime according to the "dPhase". 
+```{r}
+DCP_PlotPeakDiff(DCP_rhythm, 
+                              dPhase = DCP_dparam, 
+                              color.cut = list(param = "p.delta.peak", fun = "<", val = 0.05, color.sig = "#b33515", color.none = "dark grey"), 
+                              Info1 = gI, Info2 = gII)
+```
+
+# Perform DR test with other TOJR result
+
+The functions *DCP_dR2* and *DCP_DiffPar* are only performed to a subset of genes for biologically meaningful tests (see the manuscript for more details). By default, the functions use the gene categories in "DCP_rhythm\$rhythm.joint\$TOJR". However, user are able to specify a different (types of joint rhythmicity) TOJR assignment. For example, we can use the genome-wide FDR corrected TOJR. 
+
+```{r}
+DCP_dR2 = DCP_DiffR2(DCP_rhythm, TOJR = DCP_rhythm$rhythm.joint$TOJR.FDR)
+DCP_dparam = DCP_DiffPar(DCP_rhythm, Par = "A&phase", TOJR = DCP_rhythm$rhythm.joint$TOJR.FDR)
+```
+
+Separate TOJR result can be generated with the *toTOJR* functoin. For example, we can perform an intuitive (but statistically criticized) venn diagram. 
+```{r}
+new.TOJR = toTOJR(DCP_rhythm, "VDA", alpha = 0.05, adjustP = TRUE) #adjustP = TRUE gives genome-wide FDR adjusted results
+DCP_dR2 = DCP_DiffR2(DCP_rhythm, TOJR = new.TOJR)
+DCP_dparam = DCP_DiffPar(DCP_rhythm, Par = "A&phase", TOJR = new.TOJR)
+
+```
+
+# Other functions
+
+## Calculate ZT from local clock time
+
+If the study involves human subjects, usually researchers do not have control of when and where the data will be collected. The function *DCP_getZT* converts a recorded clock time to Zeitgeber time according to the location and date of the collection.  
+```{r}
+t = as.POSIXlt("2022-09-17 13:43:00 EST", tz="America/New_York",usetz=TRUE)
+lat = 40.4406; long = -79.9959 #This is the Pittsburgh coordinates
+t.correct = DCP_getZT(t, lat, long, ZT.min = -6)
+print(t.correct)
+```
+
+## Summarize results by p-value cutoff 
+
+Summarize the DR result to a table: 
+
+```{r}
+SummarizeDR(list(DCP_dR2$p.R2, DCP_dR2$q.R2), test = c("DRF", "DRF"),  type = c("p-value", "q-value"), val = c(0.05, 0.05), out = "long")
+SummarizeDR(list(DCP_dR2$p.R2, DCP_dR2$q.R2), test = c("DRF", "DRF"),  type = c("p-value", "q-value"), val = c(0.05, 0.05), out = "wide")
+```
+
+
+
+
+

@@ -30,7 +30,7 @@ DCP_Rhythmicity(
 
 \item{period}{numeric. The length of the oscillation cycle. Default is 24 for circadian rhythm.}
 
-\item{amp.cutoff}{}
+\item{amp.cutoff}{Only genes with amplitude greater than amp.cutoff are consirdered rhythmic}
 
 \item{alpha}{numeric. Threshold for rhythmicity p-value in joint rhythmicity categorization. If CI = TRUE, (1-alpha) confidence interval for parameters will be returned.}
 

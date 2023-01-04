@@ -210,7 +210,6 @@ toTOJR = function(x, method = "Sidak_FS", amp.cutoff = 0, alpha = 0.05, adjustP 
     }, mc.cores = parallel.ncores))
   }else{
     TOJR_adj = unlist(parallel::mclapply(seq_len(nrow(action)), function(i){
-      # SeqModelSel(action[i, ], pv[i, ], alpha, method)
       SeqModelSel(action[i, ], pv[i, ], alpha, method)
     }, mc.cores = parallel.ncores))
   }
@@ -861,7 +860,7 @@ StopRule = function(action, pv, alpha, method){
       a.stop = max(0, min(which(pv>alpha))-1)
     }
   }
-  sel = action[seq_along(a.stop)]
+  sel = action[seq_len(a.stop)]
   if(a.stop==0){
     a.type = "arrhy"
   }else if(length(sel)==1){
@@ -883,7 +882,7 @@ forwardStop = function (pv, alpha = 0.1)
     stop("alpha must be in [0,1]")
   if (min(pv, na.rm = TRUE) < 0 || max(pv, na.rm = TRUE) > 1)
     stop("pvalues must be in [0,1]")
-  val = -(1/(seq_along(pv))) * cumsum(log(1 - pv))
+  val = -(1/seq_along(pv)) * cumsum(log(1 - pv))
   oo = which(val <= alpha)
   if (length(oo) == 0)
     out = 0

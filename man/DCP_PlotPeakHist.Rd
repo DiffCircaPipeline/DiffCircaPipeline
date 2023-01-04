@@ -61,7 +61,7 @@ DCP_PlotPeakHist(
 \item{legend.position}{One of "left”, "top", "right", "bottom", or "none"}
 }
 \value{
-a ggplot2 object
+a ggplot2 object.
 }
 \description{
 Histogram of peak time

@@ -5,13 +5,7 @@
 \title{Summary of Differential Rhythmicity Tests
 Summarize differential rhythmicity Tests results into a table.}
 \usage{
-SummarizeDR(
-  result = DCP_dR2$p.R2,
-  test = "DRF",
-  type = "p-value",
-  val = 0.05,
-  out = "long"
-)
+SummarizeDR(result, test = "DRF", type = "p-value", val = 0.05, out = "long")
 }
 \arguments{
 \item{result}{a list of vectors, usually p-values. Each vector will be summarized with a different cutoff.}
