@@ -19,8 +19,8 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("ComplexHeatmap")
 
 #install DiffCircaPipeline
-devtools::install_github("DiffCircaPipeline/Rpackage")
-# devtools::install_github("DiffCircaPipeline/Rpackage@main") #run this if the above line does not work. 
+devtools::install_github("DiffCircaPipeline/DiffCircaPipeline")
+# devtools::install_github("DiffCircaPipeline/DiffCircaPipeline@main") #run this if the above line does not work. 
 ```
 
 ## Tutorial 
