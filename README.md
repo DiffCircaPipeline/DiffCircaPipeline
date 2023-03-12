@@ -1,5 +1,9 @@
 # DiffCircaPipeline R package
 
+## Notice
+
+Currently the github repository is being editted for submission for Bioconductor. Some functions may be removed. Please download at https://zenodo.org/record/7559084 for the version that produces the same result for the Bioinformatics paper. 
+
 ## Install from github
 
 * In R console
